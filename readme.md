@@ -38,5 +38,5 @@ Peu importe le langage / framework.
 
 ## Ressources :
 
-- Serde pour la sérialisation / déserialisation des données (https://serde.rs/)
+- Serde pour la sérialisation / déserialisation des données (https://serde.rs/), pour le json : https://github.com/serde-rs/json
 - CLAP pour créer un programme en ligne de commande (https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html)
