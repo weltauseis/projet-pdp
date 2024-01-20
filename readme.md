@@ -4,6 +4,8 @@
 
 Oubliez pas qu'on devra rendre ce repo au chercheur(s) qui nous corrigeront donc pas de commits bizarres et un workflow un minimum sérieux svp 🙏🙏🙏
 
+🚨 Commitez absolument du code formatté (`shift + alt + f` sur vscode) pour éviter de devoir faire des commits de formatage qui polluent le repo 🚨
+
 ## Structure :
 
 ### Backend : 
