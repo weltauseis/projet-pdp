@@ -32,4 +32,9 @@ Peu importe le langage / framework.
     - [ ] export tikz (https://tikz.net/)
     - [ ] export tulip (https://tulip.labri.fr/site/)
 
-- [ ] Binding python 
+- [ ] Binding python
+
+## Ressources :
+
+- Serde pour la sérialisation / déserialisation des données (https://serde.rs/)
+- CLAP pour créer un programme en ligne de commande (https://docs.rs/clap/latest/clap/_derive/_tutorial/index.html)
