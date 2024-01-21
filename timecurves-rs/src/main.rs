@@ -1,4 +1,6 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, fs::File};
+
+use serde::{Serialize, Deserialize};
 
 use clap::Parser;
 
@@ -12,9 +14,20 @@ struct Cli {
     output: PathBuf
 }
 
+#[derive(Serialize, Deserialize)]
+struct Data {
+    distancematrix: Vec<Vec<f64>>
+}
+
 fn main() {
     let cli = Cli::parse();
     
     println!("Input file : {}", cli.input.as_path().display());
     println!("Output file : {}", cli.output.as_path().display());
+
+    let f = File::open(cli.input).unwrap();
+
+    let d : Data = serde_json::from_reader(f).unwrap();
+
+    println!("Distance Matrix :\n{:?}", d.distancematrix);
 }
