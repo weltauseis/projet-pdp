@@ -1,8 +1,10 @@
-use std::{fs::File, path::PathBuf};
+use std::{fs::File, ops::Mul, os::unix::process, path::PathBuf};
 
+use nalgebra::DMatrix;
 use serde::{Deserialize, Serialize};
 
 use clap::Parser;
+
 
 #[derive(Parser)]
 struct Cli {
@@ -26,6 +28,30 @@ struct InputStruct {
     data: Vec<Data>,
 }
 
+
+
+//On effectue une opération de double centrage : B = -0.5 * J * P2 *J
+//où J = In - 1/n 1n, In est la matrice unité d'ordre n, 1n est la matrice n x n dont tous les coefficients sont égaux à 1.
+
+
+fn double_centering(matrix : &Vec<Vec<f64>>) ->DMatrix<f64>{
+    let n = matrix.len();
+    let matrix_i_n = DMatrix::from_diagonal_element(n, n, 1.0);
+    let matrix_1_n = DMatrix::from_element(n, n, 1.0);
+
+    let mut matrix_squared = DMatrix::from_element(n, n, 0.0);
+    for i in 0..n{
+        for j in 0..n{
+            matrix_squared[(i,j)] = matrix[i][j]*matrix[i][j];
+        }
+    }
+    let matrix_j = matrix_i_n - matrix_1_n.mul(1.0/n as f64);
+    return matrix_j.clone().mul(-0.5) * matrix_squared * matrix_j
+}
+
+
+
+
 fn main() {
     let cli = Cli::parse();
 
@@ -35,6 +61,10 @@ fn main() {
     let f = File::open(cli.input).unwrap();
 
     let d: InputStruct = serde_json::from_reader(f).unwrap();
+
+    print!("{}",double_centering(&d.distancematrix));
+
+    
 
     println!("Distance Matrix :\n{:?}", d.distancematrix);
 }
