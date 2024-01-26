@@ -51,7 +51,8 @@ fn double_centering(matrix : &Vec<Vec<f64>>) ->DMatrix<f64>{
         let mut list = Vec::new();
         // Calcul des valeurs propres
         //eigen en fonction a des valeurs un peu différentes que celui fait à la main
-        matrix.symmetric_eigen().eigenvalues.iter().for_each(|x| list.push(*x));
+        // matrix.clone().symmetric_eigen().eigenvalues.iter().for_each(|x| list.push(*x));
+        matrix.eigenvalues().unwrap().iter().for_each(|x| list.push(*x));
 
         list.sort_by(|a,b| a.partial_cmp(b).unwrap());
         
