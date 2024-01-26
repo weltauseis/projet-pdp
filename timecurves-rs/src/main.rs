@@ -1,4 +1,4 @@
-use std::{fs::File, ops::Mul, os::unix::process, path::PathBuf};
+use std::{fs::File,ops::Mul, path::PathBuf};
 
 use nalgebra::DMatrix;
 use serde::{Deserialize, Serialize};
@@ -30,9 +30,6 @@ struct InputStruct {
 
 
 
-//On effectue une opération de double centrage : B = -0.5 * J * P2 *J
-//où J = In - 1/n 1n, In est la matrice unité d'ordre n, 1n est la matrice n x n dont tous les coefficients sont égaux à 1.
-
 
 fn double_centering(matrix : &Vec<Vec<f64>>) ->DMatrix<f64>{
     let n = matrix.len();
@@ -50,8 +47,42 @@ fn double_centering(matrix : &Vec<Vec<f64>>) ->DMatrix<f64>{
 }
 
 
+    fn eigen2(matrix : DMatrix<f64>) -> DMatrix<f64>{
+        let mut list = Vec::new();
+        // Calcul des valeurs propres
+        //eigen en fonction a des valeurs un peu différentes que celui fait à la main
+        matrix.symmetric_eigen().eigenvalues.iter().for_each(|x| list.push(*x));
+
+        list.sort_by(|a,b| a.partial_cmp(b).unwrap());
+        
+        let n = list.len();
+        let mut lm = DMatrix::from_element(n,n, 0.0);
+        for i in 0..n-2{
+            lm[(i,i)] = 0.0;
+        }
+        lm[(n-2,n-2)] = list[n-2];
+        lm[(n-1,n-1)] = list[n-1];
+        
+        return lm.map(|x| x.sqrt());
+    }
 
 
+    fn eigen_vector2(matrix : DMatrix<f64>) -> DMatrix<f64> {
+        // Calcul des vecteurs propres
+        let eigendecomp = matrix.symmetric_eigen();
+        let vectors = eigendecomp.eigenvectors;
+    
+        vectors
+    }
+/*
+url : https://www.normalesup.org/~carpenti/Notes/MDS/MDS-simple.html
+
+On part d'une matrice n x n de distances mutuelles entre objets : P
+On calcule P2, matrice n x n des carrés des distances précédentes
+On effectue une opération de double centrage : B = -0.5 * J * P2 *J
+où J = In - 1/n 1n, In est la matrice unité d'ordre n, 1n est la matrice n x n dont tous les coefficients sont égaux à 1.
+On calcule les valeurs propres et vecteurs propres (unitaires) de la matrice B. On conserve les m plus grandes valeurs propres. Soit Lm la matrice diagonale de ces m valeurs propres, et Em la matrice des vecteurs propres unitaires correspondants. Soit Lm^.5 la matrice des racines carrées de ces valeurs propres.
+X = Em * Lm^.5 fournit une solution du problème posé. Les coordonnées des n points dans l'espace de dimension n sont les lignes de la matrice solution X (matrice à n lignes et m colonnes). */
 fn main() {
     let cli = Cli::parse();
 
@@ -62,9 +93,14 @@ fn main() {
 
     let d: InputStruct = serde_json::from_reader(f).unwrap();
 
-    print!("{}",double_centering(&d.distancematrix));
+    let em = eigen_vector2(double_centering(&d.distancematrix));
 
+
+    let lm = eigen2(double_centering(&d.distancematrix));
+
+    let x = em * lm;
     
-
-    println!("Distance Matrix :\n{:?}", d.distancematrix);
+    for i in 0..3{
+        println!("{:?} : {}:::{}",d.data[0].timelabels[i],x[(i,1)],x[(i,2)]);
+    }
 }
