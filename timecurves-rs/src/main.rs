@@ -1,7 +1,8 @@
 use clap::Parser;
+use nalgebra::Vector2;
 use std::{fs::File, path::PathBuf};
 
-use timecurves_rs::InputData;
+use timecurves_rs::{InputData, ProjectionAlgorithm, RandomMDS};
 
 #[derive(Parser)]
 struct Cli {
@@ -23,8 +24,14 @@ fn main() {
 
     let input_data: InputData = serde_json::from_reader(f).unwrap();
 
-    println!(
-        "Distance matrix : {:.1}",
-        input_data.nalgebra_distance_matrix()
-    );
+    let distance_matrix = input_data.nalgebra_distance_matrix();
+
+    println!("Distance matrix : {:.1}", distance_matrix);
+
+    let mds = RandomMDS::new(-1.0, 1.0);
+    let positions: Vec<Vector2<f64>> = mds.project(distance_matrix);
+
+    for (i, pos) in positions.iter().enumerate() {
+        println!("Point {} : {:.1}", input_data.data[0].timelabels[i], pos);
+    }
 }
