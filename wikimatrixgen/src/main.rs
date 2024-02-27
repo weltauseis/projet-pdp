@@ -87,7 +87,7 @@ fn main() {
             let mut dist = 0.0;
 
             for d in res.diff {
-                if d.r#type == 0 {
+                if d.r#type != 0 {
                     dist += 1.0
                 };
             }
