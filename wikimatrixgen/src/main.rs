@@ -69,7 +69,7 @@ fn main() {
                 history.revisions[i].id, history.revisions[j].id
             );
 
-            sleep(time::Duration::from_secs(1));
+            sleep(time::Duration::from_millis(1000));
             let body = reqwest::blocking::get(format!(
                 "https://api.wikimedia.org/core/v1/wikipedia/en/revision/{}/compare/{}",
                 history.revisions[i].id, history.revisions[j].id
@@ -135,7 +135,7 @@ fn main() {
         }
         writeln!(&mut output_file).unwrap();
     }
-    writeln!(&mut output_file, "            ],").unwrap();
+    writeln!(&mut output_file, "            ]").unwrap();
     writeln!(&mut output_file, "        }}").unwrap();
     writeln!(&mut output_file, "    ]").unwrap();
     writeln!(&mut output_file, "}}").unwrap();
