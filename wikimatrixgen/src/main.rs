@@ -1,84 +1,99 @@
-use core::time;
+use std::fs::File;
 use std::io::Write;
-use std::{fs::File, thread::sleep};
 
 use clap::Parser;
-use serde::{Deserialize, Serialize};
+use reqwest::header::USER_AGENT;
+use wikimatrixgen::{CompareRes, HistoryRes};
 
+// struct for automatic cli argument parsing with clap
 #[derive(Parser)]
-struct Cli {
+#[command(
+    about = "A simple tool to generate distance matrices for time curves visualisation from a wikipedia article.\n
+    NOTE : The wikimedia API only allows for 5000 requests / hour even with a valid token, so this tool only takes\n
+     into account the 50 last revisions of an article."
+)]
+struct Command {
     /// name of the wikipedia page
     page: String,
     /// output file
     output: String,
+    /// wikimedia API auth token, see https://api.wikimedia.org/wiki/Getting_started_with_Wikimedia_APIs
+    #[arg(short, long)]
+    token: Option<String>,
     /// language code of the wikipedia page : en, fr, de, ...
     #[arg(short, long)]
     language: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Revision {
-    id: u32,
-    timestamp: String,
-    comment: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct History {
-    revisions: Vec<Revision>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct CompareResponse {
-    diff: Vec<Diff>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Diff {
-    r#type: u64,
-}
-
 fn main() {
-    let cli = Cli::parse();
+    let cmd = Command::parse();
 
-    let lang = cli.language.unwrap_or("en".to_string());
+    let lang_code = cmd.language.unwrap_or("en".to_string());
+    let mut token = String::new();
 
-    let body = reqwest::blocking::get(format!(
-        "https://api.wikimedia.org/core/v1/wikipedia/{}/page/{}/history",
-        lang, cli.page
-    ))
-    .unwrap()
-    .text()
-    .unwrap();
+    if let None = cmd.token {
+        println!("Enter your wikipedia API token (see https://api.wikimedia.org/wiki/Getting_started_with_Wikimedia_APIs) :");
+        std::io::stdin().read_line(&mut token).unwrap();
+    } else {
+        token = cmd.token.unwrap().clone();
+    }
 
-    let history: History = match serde_json::from_str(body.as_str()) {
+    let client = reqwest::blocking::Client::new();
+
+    println!("Calling wikipedia API to get a list of the article's revisions...");
+    let response_body = client
+        .get(format!(
+            "https://api.wikimedia.org/core/v1/wikipedia/{}/page/{}/history",
+            lang_code, cmd.page
+        ))
+        .header(USER_AGENT, "wikipedia matrix generator")
+        .bearer_auth(&token.trim())
+        .send()
+        .unwrap()
+        .text()
+        .unwrap();
+
+    let history: HistoryRes = match serde_json::from_str(response_body.as_str()) {
         Ok(h) => h,
         Err(_) => {
-            panic!("Error during request : {}", body);
+            panic!("Error during request : {}", response_body);
         }
     };
 
-    let n = history.revisions.len();
-
+    let n = history.revisions.len().clamp(0, 50);
     let mut matrix: Vec<f64> = Vec::with_capacity(n * n);
 
+    println!("Comparing all the revisions...");
     for i in 0..n {
         for j in 0..n {
-            println!(
-                "Diff between rev #{} and #{}...",
-                history.revisions[i].id, history.revisions[j].id
+            let progress = (((i * n + j) as f64 / (n * n) as f64) * 100.0) as u64 + 1;
+            print!("\r Progress : [");
+            for i in (0..100).step_by(10) {
+                print!("{}", if i < progress { "#" } else { "-" });
+            }
+            print!(
+                "] {}% ({}/{}) : Diff between #{} & #{}    ",
+                progress,
+                i * n + j,
+                n * n,
+                history.revisions[i].id,
+                history.revisions[j].id
             );
+            std::io::stdout().flush().unwrap();
 
-            sleep(time::Duration::from_millis(1000));
-            let body = reqwest::blocking::get(format!(
-                "https://api.wikimedia.org/core/v1/wikipedia/en/revision/{}/compare/{}",
-                history.revisions[i].id, history.revisions[j].id
-            ))
-            .unwrap()
-            .text()
-            .unwrap();
+            let body = client
+                .get(format!(
+                    "https://api.wikimedia.org/core/v1/wikipedia/{}/revision/{}/compare/{}",
+                    lang_code, history.revisions[i].id, history.revisions[j].id
+                ))
+                .bearer_auth(&token.trim())
+                .header(USER_AGENT, "wikipedia matrix generator")
+                .send()
+                .unwrap()
+                .text()
+                .unwrap();
 
-            let req: Result<CompareResponse, _> = serde_json::from_str(body.as_str());
+            let req: Result<CompareRes, _> = serde_json::from_str(body.as_str());
             let res = match req {
                 Ok(c) => c,
                 Err(_) => panic!("Error during request : {}", body),
@@ -96,9 +111,7 @@ fn main() {
         }
     }
 
-    println!("{:?}", matrix);
-
-    let mut output_file = File::create(cli.output).unwrap();
+    let mut output_file = File::create(&cmd.output).unwrap();
 
     writeln!(&mut output_file, "{{").unwrap();
     // distance matrix
@@ -121,7 +134,7 @@ fn main() {
     // data
     writeln!(&mut output_file, "    \"data\": [").unwrap();
     writeln!(&mut output_file, "        {{").unwrap();
-    writeln!(&mut output_file, "            \"name\": \"{}\",", cli.page).unwrap();
+    writeln!(&mut output_file, "            \"name\": \"{}\",", cmd.page).unwrap();
     writeln!(&mut output_file, "            \"timelabels\": [").unwrap();
     for j in 0..n {
         write!(
@@ -139,4 +152,6 @@ fn main() {
     writeln!(&mut output_file, "        }}").unwrap();
     writeln!(&mut output_file, "    ]").unwrap();
     writeln!(&mut output_file, "}}").unwrap();
+
+    println!("\n Done ! Output file written in {}", &cmd.output);
 }
