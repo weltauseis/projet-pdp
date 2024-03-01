@@ -1,37 +1,38 @@
-use clap::Parser;
-use nalgebra::Vector2;
-use std::{fs::File, path::PathBuf};
+use std::{path::PathBuf, process::exit};
 
-use timecurves_rs::{InputData, ProjectionAlgorithm, RandomMDS};
+use clap::Parser;
+
+use timecurves_rs::input::InputData;
 
 #[derive(Parser)]
-struct Cli {
+struct CommandLine {
     /// Specifies the input file for generating the curves.
     /// The file must be in the correct JSON format, as per the provided template.
     input: PathBuf,
-
-    /// Specifies the name of the output file where the results will be stored.
-    output: PathBuf,
+    /// Print additional debug information to the standard output
+    #[arg(short, long)]
+    verbose: bool,
 }
 
 fn main() {
-    let cli = Cli::parse();
+    let cmd = CommandLine::parse();
 
-    println!("Input file : {}", cli.input.as_path().display());
-    println!("Output file : {}", cli.output.as_path().display());
+    let filename = cmd.input.display().to_string();
 
-    let f = File::open(cli.input).unwrap();
+    let input: InputData = match InputData::from_filename(&filename) {
+        Ok(v) => v,
+        Err(e) => {
+            println!("Error while parsing the input file :");
+            println!("{}", e);
+            exit(1);
+        }
+    };
 
-    let input_data: InputData = serde_json::from_reader(f).unwrap();
-
-    let distance_matrix = input_data.nalgebra_distance_matrix();
-
-    println!("Distance matrix : {:.1}", distance_matrix);
-
-    let mds = RandomMDS::new(-1.0, 1.0);
-    let positions: Vec<Vector2<f64>> = mds.project(distance_matrix);
-
-    for (i, pos) in positions.iter().enumerate() {
-        println!("Point {} : {:.1}", input_data.data[0].timelabels[i], pos);
+    if cmd.verbose {
+        println!("Input file <{}> read.", &cmd.input.display());
+        println!("Contains {} datasets :", input.data.len());
+        for dataset in input.data {
+            println!("  - {}", dataset.name);
+        }
     }
 }
