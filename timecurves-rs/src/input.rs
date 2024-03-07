@@ -46,7 +46,7 @@ impl InputData {
     /// # Returns
     ///
     /// Returns a `Result` containing the parsed `InputData` object or an error if parsing fails.
-    pub fn from_str(string: &str) -> Result<InputData, Box<dyn Error>> {
+    pub fn from_str(string: &str) -> Result<Self, Box<dyn Error>> {
         let input: Self = serde_json::from_str(string)?;
         Ok(input)
     }
@@ -60,7 +60,7 @@ impl InputData {
     /// # Returns
     ///
     /// Returns a `Result` containing the parsed `InputData` object or an error if parsing fails.
-    pub fn from_filename(filename: &str) -> Result<InputData, Box<dyn Error>> {
+    pub fn from_filename(filename: &str) -> Result<Self, Box<dyn Error>> {
         let file = std::fs::read_to_string(filename)?;
         let input: Self = serde_json::from_str(&file)?;
         Ok(input)

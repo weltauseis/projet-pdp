@@ -2,7 +2,7 @@ use std::{path::PathBuf, process::exit};
 
 use clap::Parser;
 
-use timecurves_rs::input::InputData;
+use timecurves_rs::{input::InputData, projection::ClassicalMDS, timecurve::Timecurve};
 
 #[derive(Parser)]
 struct CommandLine {
@@ -31,8 +31,24 @@ fn main() {
     if cmd.verbose {
         println!("Input file <{}> read.", &cmd.input.display());
         println!("Contains {} datasets :", input.data.len());
-        for dataset in input.data {
+        for dataset in &input.data {
             println!("  - {}", dataset.name);
+        }
+    }
+
+    let timecurves = Timecurve::from_input_data(&input, ClassicalMDS::new());
+
+    if cmd.verbose {
+        println!("Curves for datasets calculated.");
+
+        for curve in timecurves {
+            println!("Curve for dataset '{}' :", curve.dataset);
+            for (i, p) in curve.points.iter().enumerate() {
+                println!(
+                    "  {}. - {} : ({:.2}, {:.2})",
+                    i, p.label, p.pos[0], p.pos[1]
+                );
+            }
         }
     }
 }
