@@ -1,7 +1,9 @@
 use nalgebra::{DMatrix, DVector};
 
+use crate::math::Position;
+
 pub trait ProjectionAlgorithm {
-    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<[f64; 2]>;
+    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<Position>;
 }
 
 pub struct ClassicalMDS;
@@ -13,7 +15,7 @@ impl ClassicalMDS {
 // TODO : (FACILE) rajouter la crate log (https://github.com/rust-lang/log) pour remplacer les printf de débug
 // TODO : implémenter la gestion d'erreur pour cette fonction
 impl ProjectionAlgorithm for ClassicalMDS {
-    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<[f64; 2]> {
+    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<Position> {
         let n = distance_matrix.len();
 
         let d = DMatrix::from_fn(n, n, |i, j| distance_matrix[i][j]);
@@ -100,9 +102,10 @@ impl ProjectionAlgorithm for ClassicalMDS {
 
         //println!("X = {:.2}", &x_mat);
 
-        let mut points: Vec<[f64; 2]> = Vec::new();
+        let mut points: Vec<Position> = Vec::new();
         for i in 0..x_mat.nrows() {
-            points.push([x_mat[(i, 0)], x_mat[(i, 1)]]);
+            // [x_mat[(i, 0)], x_mat[(i, 1)]]
+            points.push(Position::new(x_mat[(i, 0)], x_mat[(i, 1)]));
         }
 
         return points;
