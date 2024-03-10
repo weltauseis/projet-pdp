@@ -34,6 +34,28 @@ impl Exporter for TikzExporter {
             }
         }
 
+        // control points (optional)
+        for curve in curves {
+            for point in &curve.points {
+                if let Some(c_prev) = point.c_prev {
+                    output.push_str(&format!(
+                        "\\fill[red] ({},{}) circle ({});\n",
+                        c_prev.0,
+                        c_prev.1,
+                        self.point_width * 0.5
+                    ));
+                }
+                if let Some(c_next) = point.c_next {
+                    output.push_str(&format!(
+                        "\\fill[blue] ({},{}) circle ({});\n",
+                        c_next.0,
+                        c_next.1,
+                        self.point_width * 0.5
+                    ));
+                }
+            }
+        }
+
         // edges
         for curve in curves {
             for slice in curve.points.windows(2) {
