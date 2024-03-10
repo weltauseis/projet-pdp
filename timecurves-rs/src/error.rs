@@ -9,13 +9,23 @@ pub struct TimecurveError {
     info: String,
 }
 
-impl fmt::Display for TimecurveError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+#[derive(Debug)]
+pub enum TimeCurveErrorKind {
+    NonSquareDistanceMatrix,
+    EvaluatedOutsideRange,
+}
+
+impl std::fmt::Display for TimecurveError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.info)
     }
 }
 
-#[derive(Debug)]
-pub enum TimeCurveErrorKind {
-    NonSquareDistanceMatrix,
+impl TimecurveError {
+    pub fn new(kind: TimeCurveErrorKind, info: &str) -> Self {
+        Self {
+            kind,
+            info: String::from(info),
+        }
+    }
 }

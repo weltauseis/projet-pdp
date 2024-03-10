@@ -1,4 +1,8 @@
-use crate::{input::InputData, projection::ProjectionAlgorithm};
+use crate::{
+    error::{TimeCurveErrorKind, TimecurveError},
+    input::InputData,
+    projection::ProjectionAlgorithm,
+};
 
 pub struct TimecurvePoint {
     pub label: String,
@@ -64,10 +68,10 @@ impl Timecurve {
     }
 
     pub fn compute_control_points(&mut self, sigma: f64) {
-        for i in 1..self.points.len() - 1 {
-            let previous = &self.points[i - 1];
+        for i in 0..self.points.len() {
             let current = &self.points[i];
-            let next = &self.points[i + 1];
+            let previous = &self.points[i.saturating_sub(1)]; // for first point, previous is the first point
+            let next = &self.points[(i + 1).clamp(0, self.points.len() - 1)]; // for last point, next is the last point
 
             // These control points are positioned so that the line joining them is parallel to (pi−1, pi+1).
 
@@ -100,10 +104,70 @@ impl Timecurve {
                 current.pos.1 - line.1 * dist_c_n * sigma,
             );
 
-            self.points[i].c_prev = Some(control_1);
-            self.points[i].c_next = Some(control_2);
+            // first point doesn't have a previous control point
+            if i > 0 {
+                self.points[i].c_prev = Some(control_1);
+            }
+
+            // last point doesn't have a next control point
+            if i < self.points.len() - 1 {
+                self.points[i].c_next = Some(control_2);
+            }
         }
     }
+
+    pub fn evaluate(&self, u: f64) -> Result<(f64, f64), TimecurveError> {
+        let t = u.fract();
+
+        let p0_index = u.floor() as usize;
+        let p3_index = (u.floor() as usize + 1).clamp(0, self.points.len() - 1);
+
+        println!(
+            "\nEvaluating at u = {:.3}(t = {:.3}), between P0 = {} & P3 = {}",
+            u, t, p0_index, p3_index
+        );
+
+        // if evaluating exactly on a point, return the point
+        if t == 0.0 {
+            return Ok(self.points[p0_index].pos);
+        }
+
+        let p0 = &self.points[p0_index].pos;
+        let p1 = match &self.points[p0_index].c_next {
+            Some(p) => p,
+            None => {
+                return Err(TimecurveError::new(
+                    TimeCurveErrorKind::EvaluatedOutsideRange,
+                    &format!("c_next is None for point {}", u.floor()),
+                ))
+            }
+        };
+        let p2 = match &self.points[p3_index].c_prev {
+            Some(p) => p,
+            None => {
+                return Err(TimecurveError::new(
+                    TimeCurveErrorKind::EvaluatedOutsideRange,
+                    &format!("c_prev is None for point {}", u.floor() as usize + 1),
+                ))
+            }
+        };
+
+        let p3 = &self.points[p3_index].pos;
+
+        // Algorithme de Casteljau
+        let a = lerp(p0, p1, t);
+        let b = lerp(p1, p2, t);
+        let c = lerp(p2, p3, t);
+
+        let d = lerp(&a, &b, t);
+        let e = lerp(&b, &c, t);
+
+        return Ok(lerp(&d, &e, t));
+    }
+}
+
+fn lerp(a: &(f64, f64), b: &(f64, f64), t: f64) -> (f64, f64) {
+    ((1.0 - t) * a.0 + t * b.0, (1.0 - t) * a.1 + t * b.1)
 }
 
 // TODO : implémenter une méthode de Timecurve pour normaliser les points
