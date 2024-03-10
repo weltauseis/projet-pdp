@@ -1,21 +1,15 @@
-use crate::{
-    input::InputData,
-    math::{Position, Vect},
-    projection::ProjectionAlgorithm,
-};
-
-pub struct ControlPoints {
-    pub a: Option<Position>,
-    pub b: Option<Position>,
-}
+use crate::{input::InputData, projection::ProjectionAlgorithm};
 
 pub struct TimecurvePoint {
     pub label: String,
     // t <-> timelabel sous forme de nombre pour le format de fichier input par défaut
     // TODO : parse le timelabel pour le transformer en temps UNIX, pas encore implémenté
     pub t: Option<u64>,
-    pub pos: Position,
-    pub control_points: ControlPoints, // option parce que pas encore implémenté
+    pub pos: (f64, f64),
+    // le point de contrôle en commun avec le point precedent
+    pub c_prev: Option<(f64, f64)>,
+    // le point de contrôle en commun avec le point suivant
+    pub c_next: Option<(f64, f64)>,
 }
 
 pub struct Timecurve {
@@ -55,7 +49,8 @@ impl Timecurve {
                     pos: projected_points[i].clone(),
                     // TODO : calcul des control points avec méthode variable comme l'algo
                     // de projection
-                    control_points: ControlPoints { a: None, b: None },
+                    c_prev: None,
+                    c_next: None,
                 });
 
                 i = i + 1;
@@ -74,39 +69,37 @@ impl Timecurve {
 
             // These control points are positioned so that the line joining them is parallel to (pi−1, pi+1).
 
-            let mut line: Vect =
-                Vect::new(previous.pos.x - next.pos.x, previous.pos.y - next.pos.y);
-            line.normalise();
+            let mut line = (previous.pos.0 - next.pos.0, previous.pos.1 - next.pos.1);
+            let norm = (line.0.powi(2) + line.1.powi(2)).sqrt();
+            line = (line.0 / norm, line.1 / norm);
 
             // The distance of ci,1 (resp. ci+1,0) to pi is set to the distance
             // between pi and pi−1 (resp. pi+1) multiplied by a a smoothing parameter σ .
 
             // distance between the previous and the current point
-            let dist_p_c = ((previous.pos.x - current.pos.x).powi(2)
-                + (previous.pos.y - current.pos.y).powi(2))
+            let dist_p_c = ((previous.pos.0 - current.pos.0).powi(2)
+                + (previous.pos.1 - current.pos.1).powi(2))
             .sqrt();
 
             // first control point
-            let control_1 = Position::new(
-                current.pos.x + line.x * dist_p_c * sigma,
-                current.pos.y + line.x * dist_p_c * sigma,
+            let control_1 = (
+                current.pos.0 + line.0 * dist_p_c * sigma,
+                current.pos.1 + line.1 * dist_p_c * sigma,
             );
 
             // distance between the current and the next point
-            let dist_c_n = ((current.pos.x - next.pos.x).powi(2)
-                + (current.pos.y - next.pos.y).powi(2))
+            let dist_c_n = ((current.pos.0 - next.pos.0).powi(2)
+                + (current.pos.1 - next.pos.1).powi(2))
             .sqrt();
 
             // second control point
-            let control_2 = Position::new(
-                current.pos.x - line.x * dist_c_n * sigma,
-                current.pos.y - line.x * dist_c_n * sigma,
+            let control_2 = (
+                current.pos.0 - line.0 * dist_c_n * sigma,
+                current.pos.1 - line.1 * dist_c_n * sigma,
             );
 
-            self.points[i].control_points = ControlPoints {
-                a: Some(control_1),
-                b: Some(control_2),
-            };
+            self.points[i].c_prev = Some(control_1);
+            self.points[i].c_next = Some(control_2);
         }
     }
 }

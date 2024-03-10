@@ -44,7 +44,7 @@ fn main() {
         for curve in timecurves {
             println!("Curve for dataset '{}' :", curve.dataset);
             for (i, p) in curve.points.iter().enumerate() {
-                println!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.x, p.pos.y);
+                println!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.0, p.pos.1);
             }
         }
     }
