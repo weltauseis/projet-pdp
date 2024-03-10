@@ -56,13 +56,15 @@ impl Timecurve {
                 i = i + 1;
             }
 
+            timecurve.compute_control_points(0.3);
+
             timecurves.push(timecurve);
         }
         timecurves
     }
 
     pub fn compute_control_points(&mut self, sigma: f64) {
-        for i in 1..self.points.len() {
+        for i in 1..self.points.len() - 1 {
             let previous = &self.points[i - 1];
             let current = &self.points[i];
             let next = &self.points[i + 1];
