@@ -14,14 +14,14 @@ pub struct TimecurvePoint {
 
 pub struct Timecurve {
     pub points: Vec<TimecurvePoint>,
-    pub dataset: String,
+    pub name: String,
 }
 
 impl Timecurve {
     pub fn new_empty(name: &str) -> Self {
         Timecurve {
             points: Vec::new(),
-            dataset: String::from(name),
+            name: String::from(name),
         }
     }
 }
