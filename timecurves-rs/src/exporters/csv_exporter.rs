@@ -1,5 +1,4 @@
 use super::exporter::Exporter;
-use std::fmt::Write;
 
 pub struct CSVExporter {}
 
@@ -9,9 +8,6 @@ impl CSVExporter {
     }
 }
 
-// il faut que je modifie, c'est dégueulasse parce que j'export aussi les points de controles pour debug
-// donc il y a plein de colonnes vides
-// mais in fine ça sera beaucoup plus propres vu qu'il y aura que les points normaux dans le csv
 impl Exporter for CSVExporter {
     fn export(&self, curves: &Vec<crate::timecurve::Timecurve>) -> String {
         let mut output = String::new();
@@ -30,18 +26,17 @@ impl Exporter for CSVExporter {
         // points values
         for (id, curve) in curves.iter().enumerate() {
             for point in &curve.points {
+                // add a row with point coordinates
                 for _ in 0..id {
                     output.push_str(",,,,");
                 }
-
                 output.push_str(&format!("{},{},,", point.pos.0, point.pos.1));
-
                 for _ in 0..curves.len() - id - 1 {
                     output.push_str(",,,,");
                 }
-
                 output.push('\n');
 
+                // first control point row if any
                 if let Some(p) = point.c_prev {
                     for _ in 0..id {
                         output.push_str(",,,,");
@@ -50,10 +45,10 @@ impl Exporter for CSVExporter {
                     for _ in 0..curves.len() - id - 1 {
                         output.push_str(",,,,");
                     }
-
                     output.push('\n');
                 }
 
+                // second control point row if any
                 if let Some(p) = point.c_next {
                     for _ in 0..id {
                         output.push_str(",,,,");
@@ -62,7 +57,6 @@ impl Exporter for CSVExporter {
                     for _ in 0..curves.len() - id - 1 {
                         output.push_str(",,,,");
                     }
-
                     output.push('\n');
                 }
             }
