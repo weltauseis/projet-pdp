@@ -1,4 +1,4 @@
 /target
 /.vscode
 message.txt
-.csv
+*.csv

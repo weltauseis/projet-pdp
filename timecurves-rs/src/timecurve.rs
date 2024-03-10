@@ -68,10 +68,10 @@ impl Timecurve {
     }
 
     pub fn compute_control_points(&mut self, sigma: f64) {
-        for i in 0..self.points.len() {
+        for i in 1..self.points.len() - 1 {
             let current = &self.points[i];
-            let previous = &self.points[i.saturating_sub(1)]; // for first point, previous is the first point
-            let next = &self.points[(i + 1).clamp(0, self.points.len() - 1)]; // for last point, next is the last point
+            let previous = &self.points[i - 1];
+            let next = &self.points[i + 1];
 
             // These control points are positioned so that the line joining them is parallel to (pi−1, pi+1).
 
@@ -104,16 +104,31 @@ impl Timecurve {
                 current.pos.1 - line.1 * dist_c_n * sigma,
             );
 
-            // first point doesn't have a previous control point
-            if i > 0 {
-                self.points[i].c_prev = Some(control_1);
-            }
+            self.points[i].c_prev = Some(control_1);
 
-            // last point doesn't have a next control point
-            if i < self.points.len() - 1 {
-                self.points[i].c_next = Some(control_2);
-            }
+            self.points[i].c_next = Some(control_2);
         }
+
+        // special case for the first and last points
+        // the cpoint for the first/last point is calculated based on the line between
+        // the first/last point and the next/previous control point
+        let len = self.points.len();
+
+        let p0: &(f64, f64) = &self.points[0].pos;
+        let c0 = &self.points[1].c_prev.unwrap();
+        let mut line0 = (p0.0 - c0.0, p0.1 - c0.1);
+        let norm = (line0.0.powi(2) + line0.1.powi(2)).sqrt();
+        line0 = (line0.0 / norm, line0.1 / norm);
+
+        self.points[0].c_next = Some((p0.0 - line0.0 * sigma, p0.1 - line0.1 * sigma));
+
+        let p1: &(f64, f64) = &self.points[len - 1].pos;
+        let c1 = &self.points[len - 2].c_next.unwrap();
+        let mut line1 = (p1.0 - c1.0, p1.1 - c1.1);
+        let norm = (line1.0.powi(2) + line1.1.powi(2)).sqrt();
+        line1 = (line1.0 / norm, line1.1 / norm);
+
+        self.points[len - 1].c_prev = Some((p1.0 - line1.0 * sigma, p1.1 - line1.1 * sigma));
     }
 
     pub fn evaluate(&self, u: f64) -> Result<(f64, f64), TimecurveError> {
