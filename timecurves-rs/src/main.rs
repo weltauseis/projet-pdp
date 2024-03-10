@@ -1,9 +1,12 @@
-use std::{fs, path::PathBuf, process::exit};
+use std::{path::PathBuf, process::exit};
 
 use clap::Parser;
 
 use timecurves_rs::{
-    exporter::CSVBuilder, input::InputData, projection::ClassicalMDS, timecurve::Timecurve,
+    exporters::{csv_exporter::CSVExporter, Exporter},
+    input::InputData,
+    projection::ClassicalMDS,
+    timecurve::Timecurve,
 };
 
 #[derive(Parser)]
@@ -11,7 +14,10 @@ struct CommandLine {
     /// Specifies the input file for generating the curves.
     /// The file must be in the correct JSON format, as per the provided template.
     input: PathBuf,
+    /// Specifies the output file for the generated curves.
+    /// The file will be in the format specified by the --format option.
     output: PathBuf,
+    /// Specifies the format of the output file.
     #[arg(short, long, default_value = "csv")]
     format: String,
     /// Print additional debug information to the standard output
@@ -54,14 +60,31 @@ fn main() {
         }
     }
 
-    let mut text_builder = match cmd.format.as_str() {
-        "csv" => CSVBuilder::new("px", "py", "cpx", "cpy", true),
+    let exporter: Box<dyn Exporter> = match cmd.format.to_lowercase().as_str() {
+        "csv" => Box::new(CSVExporter::new()),
         _ => {
             println!("Unknown output format.");
             exit(1);
         }
     };
 
-    let mut output = String::new();
-    for curve in timecurves {}
+    let output = exporter.export(&timecurves);
+
+    match std::fs::write(&cmd.output, output) {
+        Ok(_) => {
+            if cmd.verbose {
+                println!("Export to file <{}> successful.", &cmd.output.display());
+            }
+        }
+        Err(e) => {
+            println!(
+                "Error while exporting to file <{}> :",
+                &cmd.output.display()
+            );
+            println!("{}", e);
+            exit(1);
+        }
+    }
+
+    exit(0);
 }
