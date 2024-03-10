@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 // kind = type d'erreur, on peut s'en servir pour écrire un message différent en fonction de l'erreur
 // info : information ADDITIONNELLE sur l'erreur, pour aider à la comprendre
 // c.a.d : pas besoin dire "matrix is not square" dans info, on le sait déjà grâce à kind
