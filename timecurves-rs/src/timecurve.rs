@@ -17,11 +17,11 @@ pub struct TimecurvePoint {
 }
 
 impl TimecurvePoint {
-    pub fn time_label_to_unix_time(&self) -> u64 {
+    pub fn time_label_to_unix_time(&self) -> Result<u64, TimecurveError> {
         //"2023-08-03T19:28:26Z" to 1691083706
         let datetime = chrono::DateTime::parse_from_rfc3339(&self.label)
-            .map_err(|_| TimecurveError::new(TimeCurveErrorKind::InvalidTimeLabel, None));
-        datetime.unwrap().timestamp() as u64
+            .map_err(|_| TimecurveError::new(TimeCurveErrorKind::InvalidTimeLabel, None))?;
+        Ok(datetime.timestamp() as u64)
     }
 }
 
