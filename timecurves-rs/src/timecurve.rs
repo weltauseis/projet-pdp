@@ -209,7 +209,6 @@ impl Timecurve {
     }
     fn get_rotation_angle(&self, p0: (f64, f64), p1: (f64, f64)) -> f64 {
         let angle = -((p1.1 - p0.1).abs() / (p1.0 - p0.0)).atan();
-        println!("Angle : {}", angle);
         return angle + PI;
     }
     fn rotate_point(&self, angle: f64, p: (f64, f64)) -> (f64, f64) {
