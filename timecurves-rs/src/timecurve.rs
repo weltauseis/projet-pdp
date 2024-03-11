@@ -1,3 +1,4 @@
+
 use crate::{
     error::{TimeCurveErrorKind, TimecurveError},
     input::InputData,
@@ -5,16 +6,27 @@ use crate::{
 };
 use std::f64::consts::PI;
 
+
 pub struct TimecurvePoint {
     pub label: String,
     // t <-> timelabel sous forme de nombre pour le format de fichier input par défaut
-    // TODO : parse le timelabel pour le transformer en temps UNIX, pas encore implémenté
     pub t: Option<u64>,
     pub pos: (f64, f64),
     // le point de contrôle en commun avec le point precedent
     pub c_prev: Option<(f64, f64)>,
     // le point de contrôle en commun avec le point suivant
     pub c_next: Option<(f64, f64)>,
+}
+
+impl TimecurvePoint {
+
+    pub fn time_label_to_unix_time(&self) -> u64 {
+        //"2023-08-03T19:28:26Z" to 1691083706
+        let datetime = chrono::DateTime::parse_from_rfc3339(&self.label)
+            .map_err(|_| TimecurveError::new(TimeCurveErrorKind::InvalidTimeLabel, "Invalid time label"));
+        datetime.unwrap().timestamp() as u64
+    }
+    
 }
 
 pub struct Timecurve {

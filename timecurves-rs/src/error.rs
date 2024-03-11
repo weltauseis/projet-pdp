@@ -14,6 +14,7 @@ pub struct TimecurveError {
 pub enum TimeCurveErrorKind {
     NonSquareDistanceMatrix,
     EvaluatedOutsideRange,
+    InvalidTimeLabel,
 }
 
 impl std::fmt::Display for TimecurveError {
