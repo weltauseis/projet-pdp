@@ -7,7 +7,7 @@
 #[derive(Debug)]
 pub struct TimecurveError {
     kind: TimeCurveErrorKind,
-    info: String,
+    info: Option<String>,
 }
 
 #[derive(Debug)]
@@ -19,15 +19,18 @@ pub enum TimeCurveErrorKind {
 
 impl std::fmt::Display for TimecurveError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{}", self.info)
+        if let Some(info) = &self.info {
+            write!(f, "{}", info)?;
+        }
+        Ok(())
     }
 }
 
 impl TimecurveError {
-    pub fn new(kind: TimeCurveErrorKind, info: &str) -> Self {
+    pub fn new(kind: TimeCurveErrorKind, info: Option<&str>) -> Self {
         Self {
             kind,
-            info: String::from(info),
+            info: info.map(String::from),
         }
     }
 }

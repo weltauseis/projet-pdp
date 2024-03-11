@@ -1,11 +1,9 @@
-
 use crate::{
     error::{TimeCurveErrorKind, TimecurveError},
     input::InputData,
     projection::ProjectionAlgorithm,
 };
 use std::f64::consts::PI;
-
 
 pub struct TimecurvePoint {
     pub label: String,
@@ -19,14 +17,12 @@ pub struct TimecurvePoint {
 }
 
 impl TimecurvePoint {
-
     pub fn time_label_to_unix_time(&self) -> u64 {
         //"2023-08-03T19:28:26Z" to 1691083706
         let datetime = chrono::DateTime::parse_from_rfc3339(&self.label)
-            .map_err(|_| TimecurveError::new(TimeCurveErrorKind::InvalidTimeLabel, "Invalid time label"));
+            .map_err(|_| TimecurveError::new(TimeCurveErrorKind::InvalidTimeLabel, None));
         datetime.unwrap().timestamp() as u64
     }
-    
 }
 
 pub struct Timecurve {
@@ -165,7 +161,7 @@ impl Timecurve {
             None => {
                 return Err(TimecurveError::new(
                     TimeCurveErrorKind::EvaluatedOutsideRange,
-                    &format!("c_next is None for point {}", u.floor()),
+                    Some(&format!("c_next is None for point {}", u.floor())),
                 ))
             }
         };
@@ -174,7 +170,10 @@ impl Timecurve {
             None => {
                 return Err(TimecurveError::new(
                     TimeCurveErrorKind::EvaluatedOutsideRange,
-                    &format!("c_prev is None for point {}", u.floor() as usize + 1),
+                    Some(&format!(
+                        "c_prev is None for point {}",
+                        u.floor() as usize + 1
+                    )),
                 ))
             }
         };
