@@ -17,12 +17,20 @@ pub struct TimecurvePoint {
 }
 
 impl TimecurvePoint {
-    pub fn time_label_to_unix_time(&self) -> Result<u64, TimecurveError> {
+    pub fn time_label_to_unix_time(&self) -> u64 {
         //"2023-08-03T19:28:26Z" to 1691083706
-        let datetime = chrono::DateTime::parse_from_rfc3339(&self.label)
-            .map_err(|_| TimecurveError::new(TimeCurveErrorKind::InvalidTimeLabel, None))?;
-        Ok(datetime.timestamp() as u64)
+        let date = 
+            if self.label.ends_with("Z") {
+                //pour le format "2023-08-03T19:28:26Z"
+            chrono::NaiveDateTime::parse_from_str(&self.label, "%Y-%m-%dT%H:%M:%SZ").unwrap()
+            }
+            else {
+                //pour le format "2023-08-03 19:28:26.123456"
+                chrono::NaiveDateTime::parse_from_str(&self.label, "%Y-%m-%d %H:%M:%S.%f").unwrap()       
+            };
+        date.and_utc().timestamp() as u64
     }
+    
 }
 
 pub struct Timecurve {
