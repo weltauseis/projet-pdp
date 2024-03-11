@@ -3,6 +3,7 @@ use crate::{
     input::InputData,
     projection::ProjectionAlgorithm,
 };
+use std::f64::consts::PI;
 
 pub struct TimecurvePoint {
     pub label: String,
@@ -41,11 +42,9 @@ impl Timecurve {
         let mut timecurves: Vec<Timecurve> = Vec::new();
 
         let projected_points = proj_algo.project(&input_data.distancematrix);
-
         let mut i = 0;
         for dataset in &input_data.data {
             let mut timecurve = Timecurve::new_empty(&dataset.name);
-
             for timelabel in &dataset.timelabels {
                 timecurve.points.push(TimecurvePoint {
                     label: String::from(timelabel),
@@ -62,6 +61,7 @@ impl Timecurve {
 
             timecurve.compute_control_points(0.3);
 
+            timecurve.orient();
             timecurves.push(timecurve);
         }
         timecurves
@@ -178,6 +178,37 @@ impl Timecurve {
         let e = lerp(&b, &c, t);
 
         return Ok(lerp(&d, &e, t));
+    }
+
+    pub fn orient(&mut self) -> () {
+        //align the first and the last point
+        let angle =
+            self.get_rotation_angle(self.points[0].pos, self.points[self.points.len() - 1].pos);
+        for i in 0..self.points.len() {
+            self.points[i].pos = self.rotate_point(angle, self.points[i].pos);
+            self.points[i].c_prev = match self.points[i].c_prev {
+                Some(p) => Some(self.rotate_point(angle, p)),
+                None => None,
+            };
+            self.points[i].c_next = match self.points[i].c_next {
+                Some(p) => Some(self.rotate_point(angle, p)),
+                None => None,
+            };
+        }
+    }
+    fn get_rotation_angle(&self, p0: (f64, f64), p1: (f64, f64)) -> f64 {
+        let angle = -((p1.1 - p0.1).abs() / (p1.0 - p0.0)).atan();
+        println!("Angle : {}", angle);
+        return angle + PI;
+    }
+    fn rotate_point(&self, angle: f64, p: (f64, f64)) -> (f64, f64) {
+        let x = p.0;
+        let y = p.1;
+
+        let x_rot = x * angle.cos() - y * angle.sin();
+        let y_rot = x * angle.sin() + y * angle.cos();
+
+        (x_rot, y_rot)
     }
 }
 
