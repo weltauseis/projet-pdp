@@ -1,5 +1,5 @@
 use crate::{
-    error::{TimeCurveErrorKind, TimecurveError},
+    error::{TimecurveError, TimecurveErrorKind},
     input::InputData,
     projection::ProjectionAlgorithm,
 };
@@ -8,29 +8,12 @@ use std::f64::consts::PI;
 pub struct TimecurvePoint {
     pub label: String,
     // t <-> timelabel sous forme de nombre pour le format de fichier input par défaut
-    pub t: Option<u64>,
+    pub t: i64,
     pub pos: (f64, f64),
     // le point de contrôle en commun avec le point precedent
     pub c_prev: Option<(f64, f64)>,
     // le point de contrôle en commun avec le point suivant
     pub c_next: Option<(f64, f64)>,
-}
-
-impl TimecurvePoint {
-    pub fn time_label_to_unix_time(&self) -> u64 {
-        //"2023-08-03T19:28:26Z" to 1691083706
-        let date = 
-            if self.label.ends_with("Z") {
-                //pour le format "2023-08-03T19:28:26Z"
-            chrono::NaiveDateTime::parse_from_str(&self.label, "%Y-%m-%dT%H:%M:%SZ").unwrap()
-            }
-            else {
-                //pour le format "2023-08-03 19:28:26.123456"
-                chrono::NaiveDateTime::parse_from_str(&self.label, "%Y-%m-%d %H:%M:%S.%f").unwrap()       
-            };
-        date.and_utc().timestamp() as u64
-    }
-    
 }
 
 pub struct Timecurve {
@@ -54,7 +37,7 @@ impl Timecurve {
     pub fn from_input_data(
         input_data: &InputData,
         proj_algo: impl ProjectionAlgorithm,
-    ) -> Vec<Self> {
+    ) -> Result<Vec<Self>, TimecurveError> {
         let mut timecurves: Vec<Timecurve> = Vec::new();
 
         let projected_points = proj_algo.project(&input_data.distancematrix);
@@ -64,7 +47,7 @@ impl Timecurve {
             for timelabel in &dataset.timelabels {
                 timecurve.points.push(TimecurvePoint {
                     label: String::from(timelabel),
-                    t: None,
+                    t: label_to_unix(&timelabel)?,
                     pos: projected_points[i].clone(),
                     // TODO : calcul des control points avec méthode variable comme l'algo
                     // de projection
@@ -77,10 +60,11 @@ impl Timecurve {
 
             timecurve.compute_control_points(0.3);
 
-            timecurve.orient();
+            //timecurve.orient();
             timecurves.push(timecurve);
         }
-        timecurves
+
+        return Ok(timecurves);
     }
 
     pub fn compute_control_points(&mut self, sigma: f64) {
@@ -168,7 +152,7 @@ impl Timecurve {
             Some(p) => p,
             None => {
                 return Err(TimecurveError::new(
-                    TimeCurveErrorKind::EvaluatedOutsideRange,
+                    TimecurveErrorKind::EvaluatedOutsideRange,
                     Some(&format!("c_next is None for point {}", u.floor())),
                 ))
             }
@@ -177,7 +161,7 @@ impl Timecurve {
             Some(p) => p,
             None => {
                 return Err(TimecurveError::new(
-                    TimeCurveErrorKind::EvaluatedOutsideRange,
+                    TimecurveErrorKind::EvaluatedOutsideRange,
                     Some(&format!(
                         "c_prev is None for point {}",
                         u.floor() as usize + 1
@@ -232,6 +216,27 @@ impl Timecurve {
 
 fn lerp(a: &(f64, f64), b: &(f64, f64), t: f64) -> (f64, f64) {
     ((1.0 - t) * a.0 + t * b.0, (1.0 - t) * a.1 + t * b.1)
+}
+
+// ATTENTION : ce code utilise NaiveDateTime donc il ne faut pas mélanger les timezone à l'interieur des différents datasets
+// c.a.d UNE SEULE TIMEZONE PAR FICHIER
+fn label_to_unix(label: &str) -> Result<i64, TimecurveError> {
+    let mut date;
+
+    date = chrono::NaiveDateTime::parse_from_str(label, "%Y-%m-%dT%H:%M:%SZ");
+    if let Ok(t) = date {
+        return Ok(t.and_utc().timestamp());
+    }
+
+    date = chrono::NaiveDateTime::parse_from_str(label, "%Y-%m-%d %H:%M:%S.%f");
+    if let Ok(t) = date {
+        return Ok(t.and_utc().timestamp());
+    }
+
+    return Err(TimecurveError::new(
+        TimecurveErrorKind::InvalidTimeLabel,
+        Some(&format!("Label : \"{}\"", label)),
+    ));
 }
 
 // TODO : implémenter une méthode de Timecurve pour normaliser les points

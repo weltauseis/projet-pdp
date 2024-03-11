@@ -6,12 +6,12 @@
 // c'est raisonnable non ?? dites moi si vous avez une meilleure idée pour la gestion d'erreur
 #[derive(Debug)]
 pub struct TimecurveError {
-    kind: TimeCurveErrorKind,
-    info: Option<String>,
+    pub kind: TimecurveErrorKind,
+    pub info: Option<String>,
 }
 
 #[derive(Debug)]
-pub enum TimeCurveErrorKind {
+pub enum TimecurveErrorKind {
     NonSquareDistanceMatrix,
     EvaluatedOutsideRange,
     InvalidTimeLabel,
@@ -20,14 +20,25 @@ pub enum TimeCurveErrorKind {
 impl std::fmt::Display for TimecurveError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if let Some(info) = &self.info {
-            write!(f, "{}", info)?;
+            write!(
+                f,
+                "{} ({})",
+                match self.kind {
+                    TimecurveErrorKind::NonSquareDistanceMatrix =>
+                        "Distance matrix is not square !",
+                    TimecurveErrorKind::EvaluatedOutsideRange =>
+                        "Tried to evaluate timecurve outside its range !",
+                    TimecurveErrorKind::InvalidTimeLabel => "Timelabel is invalid !",
+                },
+                info
+            )?;
         }
         Ok(())
     }
 }
 
 impl TimecurveError {
-    pub fn new(kind: TimeCurveErrorKind, info: Option<&str>) -> Self {
+    pub fn new(kind: TimecurveErrorKind, info: Option<&str>) -> Self {
         Self {
             kind,
             info: info.map(String::from),

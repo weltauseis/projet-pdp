@@ -47,7 +47,14 @@ fn main() {
         }
     }
 
-    let timecurves = Timecurve::from_input_data(&input, ClassicalMDS::new());
+    let timecurves = match Timecurve::from_input_data(&input, ClassicalMDS::new()) {
+        Ok(curves) => curves,
+        Err(e) => {
+            println!("Error while creating the timecurves :");
+            println!("{}", e);
+            exit(1);
+        }
+    };
 
     if cmd.verbose {
         println!("Curves for datasets calculated.");
