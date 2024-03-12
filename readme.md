@@ -35,3 +35,7 @@ Il y a plein de TODO dans le code, il suffit de chercher avec ctrl + shift + f, 
 ### Binding python :
 
 Faire une branche et commencer à rendre la biblio utilisable en python, par exemple en convertissant le CLI en python.
+
+### Tests :
+
+Faire des tests pour les fonctions de la bibliothèque, je sais que vous adorez ça les gars en génie log.
