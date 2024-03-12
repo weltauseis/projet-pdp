@@ -65,4 +65,21 @@ impl InputData {
         let input: Self = serde_json::from_str(&file)?;
         Ok(input)
     }
+
+    /// Creates a new `InputData` object from a distance matrix and a list of datasets.
+    ///
+    /// # Arguments
+    ///
+    /// * `dmatrix` - A 2D vector representing the distance matrix.
+    /// * `datasets` - A vector of `Dataset` objects.
+    ///
+    /// # Returns
+    ///
+    /// Returns a new `InputData` object initialized with the given distance matrix and datasets.
+    pub fn from(dmatrix: Vec<Vec<f64>>, datasets: Vec<Dataset>) -> Self {
+        InputData {
+            distancematrix: dmatrix,
+            data: datasets,
+        }
+    }
 }
