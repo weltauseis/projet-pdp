@@ -33,13 +33,13 @@ impl Exporter for SVGExporter {
                 output.push_str(&format!(
                     "<path d=\"M {} {} C {} {} {} {} {} {}\" fill=\"none\" stroke=\"rgb({},{},{})\" stroke-width=\"0.01\" />\n",
                     p1.pos.0 + PADDING,
-                    p1.pos.1 + PADDING,
+                    1.0 - p1.pos.1 + PADDING, // because svg (0,0) is top left, so 1.0 - y to flip the y axis
                     p1.c_next.unwrap().0 + PADDING,
-                    p1.c_next.unwrap().1 + PADDING,
+                    1.0 - p1.c_next.unwrap().1 + PADDING,
                     p2.c_prev.unwrap().0 + PADDING,
-                    p2.c_prev.unwrap().1 + PADDING,
+                    1.0 - p2.c_prev.unwrap().1 + PADDING,
                     p2.pos.0 + PADDING,
-                    p2.pos.1 + PADDING,
+                    1.0 - p2.pos.1 + PADDING,
                     color.0,
                     color.1,
                     color.2,
@@ -54,7 +54,7 @@ impl Exporter for SVGExporter {
                 output.push_str(&format!(
                     "<circle cx=\"{}\" cy=\"{}\" r=\"0.01\" fill=\"rgb({},{},{})\" />\n",
                     point.pos.0 + PADDING,
-                    point.pos.1 + PADDING,
+                    1.0 - point.pos.1 + PADDING,
                     color.0,
                     color.1,
                     color.2,
