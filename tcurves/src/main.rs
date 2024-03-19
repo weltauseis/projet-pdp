@@ -3,7 +3,7 @@ use std::{path::PathBuf, process::exit};
 use clap::Parser;
 
 use timecurves_rs::{
-    exporters::{CSVExporter, Exporter, TikzExporter},
+    exporters::{CSVExporter, Exporter, SVGExporter, TikzExporter},
     input::InputData,
     projection::ClassicalMDS,
     timecurve::Timecurve,
@@ -73,6 +73,7 @@ fn main() {
     let exporter: Box<dyn Exporter> = match cmd.format.to_lowercase().as_str() {
         "csv" => Box::new(CSVExporter::new()),
         "tikz" => Box::new(TikzExporter::new(cmd.tikz_drawing_size)),
+        "svg" => Box::new(SVGExporter::new()),
         _ => {
             println!("Unknown output format.");
             exit(1);

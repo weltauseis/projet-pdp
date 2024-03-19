@@ -3,7 +3,6 @@ use crate::{
     input::InputData,
     projection::ProjectionAlgorithm,
 };
-use std::f64::consts::PI;
 
 pub struct TimecurvePoint {
     pub label: String,

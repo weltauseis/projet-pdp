@@ -1,8 +1,11 @@
-pub mod csv_exporter;
-pub mod exporter;
-pub mod tikz_exporter;
+mod csv_exporter;
+mod exporter;
+mod svg_exporter;
+mod tikz_exporter;
 
 // use pour pouvoir écrire importer avec exporters::Struct au lieu de exporters::fichier::Struct
 pub use csv_exporter::CSVExporter;
-pub use exporter::{curve_color_lerp, Exporter};
+use exporter::curve_color_lerp;
+pub use exporter::Exporter;
+pub use svg_exporter::SVGExporter;
 pub use tikz_exporter::TikzExporter;
