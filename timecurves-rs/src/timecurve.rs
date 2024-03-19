@@ -37,8 +37,8 @@ impl Timecurve {
     pub fn from_input_data(
         input_data: &InputData,
         proj_algo: impl ProjectionAlgorithm,
-    ) -> Result<Vec<Self>, TimecurveError> {
-        let mut timecurves: Vec<Timecurve> = Vec::new();
+    ) -> Result<TimecurveSet, TimecurveError> {
+        let mut timecurves = TimecurveSet::new_empty();
 
         let projected_points = proj_algo.project(&input_data.distancematrix);
         let mut i = 0;
@@ -47,7 +47,7 @@ impl Timecurve {
             for timelabel in &dataset.timelabels {
                 timecurve.points.push(TimecurvePoint {
                     label: String::from(timelabel),
-                    t: label_to_unix(&timelabel)?,
+                    t: label_to_time(&timelabel)?,
                     pos: projected_points[i].clone(),
                     // TODO : calcul des control points avec méthode variable comme l'algo
                     // de projection
@@ -58,12 +58,12 @@ impl Timecurve {
                 i = i + 1;
             }
 
+            timecurve.points.sort_by_key(|p| p.t);
             timecurve.compute_control_points(0.3);
-
-            //timecurve.orient();
-            timecurves.push(timecurve);
+            timecurves.curves.push(timecurve);
         }
 
+        timecurves.normalise();
         return Ok(timecurves);
     }
 
@@ -182,35 +182,91 @@ impl Timecurve {
 
         return Ok(lerp(&d, &e, t));
     }
+}
 
-    pub fn orient(&mut self) -> () {
-        //align the first and the last point
-        let angle =
-            self.get_rotation_angle(self.points[0].pos, self.points[self.points.len() - 1].pos);
-        for i in 0..self.points.len() {
-            self.points[i].pos = self.rotate_point(angle, self.points[i].pos);
-            self.points[i].c_prev = match self.points[i].c_prev {
-                Some(p) => Some(self.rotate_point(angle, p)),
-                None => None,
-            };
-            self.points[i].c_next = match self.points[i].c_next {
-                Some(p) => Some(self.rotate_point(angle, p)),
-                None => None,
-            };
+pub struct TimecurveSet {
+    pub curves: Vec<Timecurve>,
+}
+
+impl TimecurveSet {
+    pub fn new_empty() -> Self {
+        TimecurveSet { curves: Vec::new() }
+    }
+
+    pub fn normalise(&mut self) {
+        // for multiple datasets, we align based on the first curve
+        // like in the examples in the webpage
+        let first_curve = match self.curves.get(0) {
+            Some(v) => v,
+            None => return,
+        };
+
+        // if there are no points to align
+        if first_curve.points.len() < 2 {
+            return;
         }
-    }
-    fn get_rotation_angle(&self, p0: (f64, f64), p1: (f64, f64)) -> f64 {
-        let angle = -((p1.1 - p0.1).abs() / (p1.0 - p0.0)).atan();
-        return angle + PI;
-    }
-    fn rotate_point(&self, angle: f64, p: (f64, f64)) -> (f64, f64) {
-        let x = p.0;
-        let y = p.1;
 
-        let x_rot = x * angle.cos() - y * angle.sin();
-        let y_rot = x * angle.sin() + y * angle.cos();
+        let p0 = first_curve.points.first().unwrap(); // okay to unwrap here because we checked for length
+        let p1 = first_curve.points.last().unwrap();
 
-        (x_rot, y_rot)
+        // find the angle needed for first and last point to be aligned horizontally
+        let tan = (p0.pos.1 - p1.pos.1).abs() / (p0.pos.0 - p1.pos.0).abs();
+        let angle = -tan.atan();
+
+        // rotate all points around the origin by that angle
+        for curve in &mut self.curves {
+            for p in &mut curve.points {
+                p.pos = rotate_point_around_origin(angle, p.pos);
+                if let Some(c) = p.c_prev {
+                    p.c_prev = Some(rotate_point_around_origin(angle, c));
+                }
+                if let Some(c) = p.c_next {
+                    p.c_next = Some(rotate_point_around_origin(angle, c));
+                }
+            }
+        }
+
+        // normalise in range [0, 1]
+        let mut x_min = f64::INFINITY;
+        let mut x_max = f64::NEG_INFINITY;
+        let mut y_min = f64::INFINITY;
+        let mut y_max = f64::NEG_INFINITY;
+
+        for curve in &self.curves {
+            x_min = curve.points.iter().fold(x_min, |acc, p| acc.min(p.pos.0));
+            x_max = curve.points.iter().fold(x_max, |acc, p| acc.max(p.pos.0));
+            y_min = curve.points.iter().fold(y_min, |acc, p| acc.min(p.pos.1));
+            y_max = curve.points.iter().fold(y_max, |acc, p| acc.max(p.pos.1));
+        }
+
+        // we want to scale all points by the same factor
+        // on the x and y axis in order to keep the aspect ratio
+        // and not distort distances between points
+        let max = x_max.max(y_max);
+        let min = x_min.min(y_min);
+
+        let range = max - min;
+
+        // substract xmin or ymind to bring points into positive range ([0; +inf], [0; +inf])
+        // then divide by range to bring them into ([0; 1], [0; 1])
+        for curve in &mut self.curves {
+            for p in &mut curve.points {
+                p.pos.0 = (p.pos.0 - x_min) / range;
+                p.pos.1 = (p.pos.1 - y_min) / range;
+
+                if let Some(c) = p.c_prev {
+                    let new_x = (c.0 - x_min) / range;
+                    let new_y = (c.1 - y_min) / range;
+                    p.c_prev = Some((new_x, new_y));
+                }
+
+                if let Some(c) = p.c_next {
+                    let new_x = (c.0 - x_min) / range;
+                    let new_y = (c.1 - y_min) / range;
+                    p.c_next = Some((new_x, new_y));
+                }
+            }
+        }
     }
 }
 
@@ -218,11 +274,22 @@ fn lerp(a: &(f64, f64), b: &(f64, f64), t: f64) -> (f64, f64) {
     ((1.0 - t) * a.0 + t * b.0, (1.0 - t) * a.1 + t * b.1)
 }
 
+fn rotate_point_around_origin(angle: f64, p: (f64, f64)) -> (f64, f64) {
+    let x = p.0;
+    let y = p.1;
+
+    let x_prime = x * angle.cos() - y * angle.sin();
+    let y_prime = x * angle.sin() + y * angle.cos();
+
+    (x_prime, y_prime)
+}
+
 // ATTENTION : ce code utilise NaiveDateTime donc il ne faut pas mélanger les timezone à l'interieur des différents datasets
 // c.a.d UNE SEULE TIMEZONE PAR FICHIER
-fn label_to_unix(label: &str) -> Result<i64, TimecurveError> {
+fn label_to_time(label: &str) -> Result<i64, TimecurveError> {
     let mut date;
 
+    // label is a time string
     date = chrono::NaiveDateTime::parse_from_str(label, "%Y-%m-%dT%H:%M:%SZ");
     if let Ok(t) = date {
         return Ok(t.and_utc().timestamp());
@@ -233,6 +300,13 @@ fn label_to_unix(label: &str) -> Result<i64, TimecurveError> {
         return Ok(t.and_utc().timestamp());
     }
 
+    // label is a raw time number
+    let time = label.parse::<i64>();
+    if let Ok(t) = time {
+        return Ok(t);
+    }
+
+    // no parsing method worked
     return Err(TimecurveError::new(
         TimecurveErrorKind::InvalidTimeLabel,
         Some(&format!("Label : \"{}\"", label)),

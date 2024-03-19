@@ -18,11 +18,14 @@ struct CommandLine {
     /// The file will be in the format specified by the --format option.
     output: PathBuf,
     /// Specifies the format of the output file.
-    #[arg(short, long, default_value = "csv")]
+    #[arg(short, long)]
     format: String,
     /// Print additional debug information to the standard output
     #[arg(short, long)]
     verbose: bool,
+    /// Specifies the size of the drawing in the Tikz output format, in cm.
+    #[arg(long, default_value = "10")]
+    tikz_drawing_size: f64,
 }
 
 fn main() {
@@ -59,7 +62,7 @@ fn main() {
     if cmd.verbose {
         println!("Curves for datasets calculated.");
 
-        for curve in &timecurves {
+        for curve in &timecurves.curves {
             println!("Curve for dataset '{}' :", curve.name);
             for (i, p) in curve.points.iter().enumerate() {
                 println!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.0, p.pos.1);
@@ -69,7 +72,7 @@ fn main() {
 
     let exporter: Box<dyn Exporter> = match cmd.format.to_lowercase().as_str() {
         "csv" => Box::new(CSVExporter::new()),
-        "tikz" => Box::new(TikzExporter::new(0.1, 1.0)),
+        "tikz" => Box::new(TikzExporter::new(cmd.tikz_drawing_size)),
         _ => {
             println!("Unknown output format.");
             exit(1);
