@@ -1,95 +1,72 @@
 #[warn(unused_imports)]
 use crate::input::Dataset;
 use crate::input::InputData;
+use py_projection::PyTimecurve;
 use pyo3::prelude::*;
 use pyo3::Python;
 use timecurves_rs::*;
-
-#[derive(Clone)]
+mod py_projection;
+// Add missing import statement for blalux
 #[pyclass]
-struct PyInputData {
-    distancematrix: Vec<Vec<f64>>,
-    data: Vec<PyDataset>,
+pub struct PyInputData {
+    inputdata: InputData,
+}
+
+impl From<InputData> for PyInputData {
+    fn from(inputdata: InputData) -> PyInputData {
+        PyInputData { inputdata }
+    }
 }
 #[pymethods]
 impl PyInputData {
-    #[staticmethod]
+    #[new]
     fn new() -> Self {
         PyInputData {
-            distancematrix: Vec::new(),
-            data: Vec::new(),
+            inputdata: InputData {
+                distancematrix: Vec::new(),
+                data: Vec::new(),
+            },
         }
     }
-    #[getter]
-    pub fn get_dmatrix(&self) -> Vec<Vec<f64>> {
-        self.distancematrix.clone()
-    }
-    #[getter]
-    pub fn get_datasets(&self) -> Vec<PyDataset> {
-        self.data.clone()
-    }
-}
 
-#[derive(Clone)]
-#[pyclass]
-struct PyDataset {
-    name: String,
-    timelabels: Vec<String>,
-}
-
-#[pymethods]
-impl PyDataset {
-    #[staticmethod]
-    fn new() -> Self {
-        PyDataset {
-            name: String::new(),
-            timelabels: Vec::new(),
+    fn from_filename(&mut self, filename: &str) -> () {
+        self.inputdata = match InputData::from_filename(filename) {
+            Ok(v) => v,
+            Err(e) => {
+                panic!("Error: {}", e);
+            }
         }
     }
-    #[getter]
-    pub fn get_name(&self) -> String {
-        self.name.clone()
-    }
-    #[getter]
-    pub fn get_timelabels(&self) -> Vec<String> {
-        self.timelabels.clone()
-    }
-}
-#[pyfunction]
-fn input_data(filename: &str) -> PyResult<PyInputData> {
-    let input = match InputData::from_filename(filename) {
-        Ok(v) => parse_data_to_py_data(v),
-        Err(e) => {
-            return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(format!(
-                "Error: {}",
-                e
-            )))
-        }
-    };
-    Ok(input)
-}
 
-// Parsing
-fn parse_to_py_set(dataset: Dataset) -> PyDataset {
-    let mut pyds = PyDataset::new();
-    pyds.name = dataset.name;
-    pyds.timelabels = dataset.timelabels;
-    return pyds;
-}
-fn parse_data_to_py_data(input: InputData) -> PyInputData {
-    let mut pyds = PyInputData::new();
-    pyds.distancematrix = input.distancematrix;
-    for dataset in input.data {
-        pyds.data.push(parse_to_py_set(dataset));
+    fn from_str(&mut self, string: &str) -> () {
+        self.inputdata = match InputData::from_str(string) {
+            Ok(v) => v,
+            Err(e) => {
+                panic!("Error: {}", e);
+            }
+        }
     }
-    return pyds;
+    fn from(&mut self, dmatrix: Vec<Vec<f64>>, datasets: Vec<(String, Vec<String>)>) -> () {
+        let datasets = datasets
+            .iter()
+            .map(|(name, timelabels)| Dataset {
+                name: name.clone(),
+                timelabels: timelabels.clone(),
+            })
+            .collect();
+        self.inputdata = InputData::from(dmatrix, datasets);
+    }
+
+    #[getter]
+    fn distancematrix(&self) -> Vec<Vec<f64>> {
+        self.inputdata.distancematrix.clone()
+    }
 }
 
 /// A Python module implemented in Rust.gi
 #[pymodule]
 fn timecurves_py(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyInputData>()?;
-    m.add_class::<PyDataset>()?;
-    m.add_function(wrap_pyfunction!(input_data, m)?)?;
+    m.add_class::<PyTimecurve>()?;
     Ok(())
 }
