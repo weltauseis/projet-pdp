@@ -63,7 +63,6 @@ impl PyInputData {
 fn timecurves_py(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyInputData>()?;
     m.add_class::<PyTimecurve>()?;
-    m.add_class::<export::CSVExporter>()?;
-    m.add_function(wrap_pyfunction!(export::export_csv, m)?)?;
+    m.add_class::<export::PyExporter>()?;
     Ok(())
 }
