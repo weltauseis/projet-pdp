@@ -136,7 +136,7 @@ impl ProjectionAlgorithm for ClassicalMDS {
     
         if n == 0 {
             return Err(TimecurveError::new(
-                TimecurveErrorKind::EmptyDistanceMatrix,
+                TimecurveErrorKind::NonSquareDistanceMatrix,
                 Some("Distance matrix is empty !"),
             ));
         }
