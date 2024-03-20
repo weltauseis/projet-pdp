@@ -209,8 +209,7 @@ impl TimecurveSet {
         let p1 = first_curve.points.last().unwrap();
 
         // find the angle needed for first and last point to be aligned horizontally
-        let tan = (p0.pos.1 - p1.pos.1).abs() / (p0.pos.0 - p1.pos.0).abs();
-        let angle = -tan.atan();
+        let angle = -(p1.pos.1 - p0.pos.1).atan2(p1.pos.0 - p0.pos.0);
 
         // rotate all points around the origin by that angle
         for curve in &mut self.curves {
