@@ -10,3 +10,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = "0.20.0"
+timecurves_rs = {path = "../timecurves-rs"}
