@@ -29,9 +29,7 @@ impl Timecurve {
     }
 }
 
-
 impl Timecurve {
-    
     pub fn from_input_data(
         input_data: &InputData,
         proj_algo: impl ProjectionAlgorithm,

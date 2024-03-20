@@ -4,10 +4,36 @@ use crate::error::{TimecurveError, TimecurveErrorKind};
 
 pub trait ProjectionAlgorithm {
     fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<(f64, f64)>;
-    fn dataset_global_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(),TimecurveError>;
-    fn matrix_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(),TimecurveError>;
-    fn projection_coherence_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(),TimecurveError>;
+    fn dataset_global_test(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<(), TimecurveError>;
+    fn projection_coherence_test(
+        &self,
+        distance_matrix: &Vec<Vec<f64>>,
+    ) -> Result<(), TimecurveError>;
+}
 
+fn matrix_test(distance_matrix: &Vec<Vec<f64>>) -> Result<(), TimecurveError> {
+    let n = distance_matrix.len();
+
+    if n == 0 {
+        return Err(TimecurveError::new(
+            TimecurveErrorKind::NonSquareDistanceMatrix,
+            Some("Distance matrix is empty !"),
+        ));
+    }
+
+    for row in distance_matrix {
+        if row.len() != n {
+            return Err(TimecurveError::new(
+                TimecurveErrorKind::NonSquareDistanceMatrix,
+                Some(&format!(
+                    "Distance matrix has {} rows ≠ {} columns !",
+                    n,
+                    row.len()
+                )),
+            ));
+        }
+    }
+    return Ok(());
 }
 
 pub struct ClassicalMDS;
@@ -19,7 +45,6 @@ impl ClassicalMDS {
 // TODO : (FACILE) rajouter la crate log (https://github.com/rust-lang/log) pour remplacer les printf de débug
 // TODO : implémenter la gestion d'erreur pour cette fonction
 //        par exemple, une matrice non carrée ou un nombre de points différent de la taille de la matrice
-
 
 impl ProjectionAlgorithm for ClassicalMDS {
     fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<(f64, f64)> {
@@ -117,46 +142,21 @@ impl ProjectionAlgorithm for ClassicalMDS {
 
         return points;
     }
-    
-    fn dataset_global_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(),TimecurveError> {
-        match self.matrix_test(distance_matrix) {
-            Ok(_) => {
-                match self.projection_coherence_test(distance_matrix) {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e)
-                }
+
+    fn dataset_global_test(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<(), TimecurveError> {
+        match matrix_test(distance_matrix) {
+            Ok(_) => match self.projection_coherence_test(distance_matrix) {
+                Ok(_) => Ok(()),
+                Err(e) => Err(e),
             },
-            Err(e) => Err(e)
-            
+            Err(e) => Err(e),
         }
     }
-    
-    fn matrix_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(), TimecurveError> {
-        let n = distance_matrix.len();
-    
-        if n == 0 {
-            return Err(TimecurveError::new(
-                TimecurveErrorKind::NonSquareDistanceMatrix,
-                Some("Distance matrix is empty !"),
-            ));
-        }
-    
-        for row in distance_matrix {
-            if row.len() != n  {
-                return Err(TimecurveError::new(
-                    TimecurveErrorKind::NonSquareDistanceMatrix,
-                    Some(&format!(
-                        "Distance matrix has {} rows ≠ {} columns !",
-                        n,
-                        row.len()
-                    )),
-                ));
-            }
-        }
-        return Ok(());
-    }
-    
-    fn projection_coherence_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(),TimecurveError> {
+
+    fn projection_coherence_test(
+        &self,
+        distance_matrix: &Vec<Vec<f64>>,
+    ) -> Result<(), TimecurveError> {
         let n_matrix = distance_matrix.len();
         let n_points = self.project(distance_matrix).len();
         if n_matrix != n_points {
@@ -164,12 +164,10 @@ impl ProjectionAlgorithm for ClassicalMDS {
                 TimecurveErrorKind::NonSquareDistanceMatrix,
                 Some(&format!(
                     "Distance matrix has {} rows and columns but the projection has {} points !",
-                    n_matrix,
-                    n_points,
+                    n_matrix, n_points,
                 )),
             ));
         }
         return Ok(());
     }
-    
 }
