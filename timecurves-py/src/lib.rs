@@ -1,21 +1,16 @@
 #[warn(unused_imports)]
 use crate::input::Dataset;
 use crate::input::InputData;
-use py_projection::PyTimecurve;
 use pyo3::prelude::*;
 use pyo3::Python;
+use timecurve::PyTimecurve;
 use timecurves_rs::*;
-mod py_projection;
+mod export;
+mod timecurve;
 // Add missing import statement for blalux
 #[pyclass]
 pub struct PyInputData {
     inputdata: InputData,
-}
-
-impl From<InputData> for PyInputData {
-    fn from(inputdata: InputData) -> PyInputData {
-        PyInputData { inputdata }
-    }
 }
 #[pymethods]
 impl PyInputData {
@@ -68,5 +63,7 @@ impl PyInputData {
 fn timecurves_py(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyInputData>()?;
     m.add_class::<PyTimecurve>()?;
+    m.add_class::<export::CSVExporter>()?;
+    m.add_function(wrap_pyfunction!(export::export_csv, m)?)?;
     Ok(())
 }

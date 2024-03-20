@@ -4,7 +4,7 @@ use crate::{
     projection::ProjectionAlgorithm,
 };
 use std::f64::consts::PI;
-
+#[derive(Clone)]
 pub struct TimecurvePoint {
     pub label: String,
     // t <-> timelabel sous forme de nombre pour le format de fichier input par défaut
@@ -15,7 +15,7 @@ pub struct TimecurvePoint {
     // le point de contrôle en commun avec le point suivant
     pub c_next: Option<(f64, f64)>,
 }
-
+#[derive(Clone)]
 pub struct Timecurve {
     pub points: Vec<TimecurvePoint>,
     pub name: String,

@@ -4,10 +4,13 @@ use timecurves_rs::{projection::ClassicalMDS, timecurve::Timecurve};
 use crate::PyInputData;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct PyTimecurve {
     pub timecurve: Timecurve,
 }
+
 #[pymethods]
+
 impl PyTimecurve {
     #[new]
     pub fn new_empty(name: &str) -> Self {
