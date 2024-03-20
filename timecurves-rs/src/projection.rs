@@ -119,7 +119,7 @@ impl ProjectionAlgorithm for ClassicalMDS {
     }
     
     fn dataset_global_test(&self,distance_matrix: &Vec<Vec<f64>>) -> Result<(),TimecurveError> {
-        match self.projection_coherence_test(distance_matrix) {
+        match self.matrix_test(distance_matrix) {
             Ok(_) => {
                 match self.projection_coherence_test(distance_matrix) {
                     Ok(_) => Ok(()),
