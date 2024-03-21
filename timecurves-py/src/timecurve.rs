@@ -13,9 +13,9 @@ pub struct PyTimecurve {
 
 impl PyTimecurve {
     #[new]
-    pub fn new_empty(name: &str) -> Self {
+    pub fn new_empty() -> Self {
         PyTimecurve {
-            timecurve: Timecurve::new_empty(name),
+            timecurve: Timecurve::new_empty(""),
         }
     }
     #[warn(private_interfaces)]

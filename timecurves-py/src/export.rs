@@ -16,13 +16,8 @@ impl PyExporter {
     #[new]
     fn new(str: Option<&str>) -> Self {
         let ext = str.unwrap_or("csv");
-        match ext {
-            "tikz" => PyExporter {
-                ext: "tikz".to_string(),
-            },
-            _ => PyExporter {
-                ext: "csv".to_string(),
-            },
+        PyExporter {
+            ext: ext.to_string(),
         }
     }
     fn export(&self, pytc: Vec<PyObject>) -> String {
