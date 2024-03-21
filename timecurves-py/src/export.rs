@@ -6,7 +6,7 @@ use crate::timecurve::PyTimecurve;
 const TIKZ_POINT_SIZE: f64 = 0.1;
 const TIKZ_CURVE_SIZE: f64 = 1.0;
 
-#[pyclass]
+#[pyclass(name = "exporter")]
 pub struct PyExporter {
     pub ext: String,
 }

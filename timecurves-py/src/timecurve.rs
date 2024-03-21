@@ -1,9 +1,9 @@
 use pyo3::prelude::*;
 use timecurves_rs::{projection::ClassicalMDS, timecurve::Timecurve};
 
-use crate::PyInputData;
+use crate::input::PyInputData;
 
-#[pyclass]
+#[pyclass(name = "timecurve")]
 #[derive(Clone)]
 pub struct PyTimecurve {
     pub timecurve: Timecurve,
