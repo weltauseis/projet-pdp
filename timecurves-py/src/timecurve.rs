@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{exceptions::PyValueError, prelude::*};
 use timecurves_rs::{projection::ClassicalMDS, timecurve::Timecurve};
 
 use crate::input::PyInputData;
@@ -12,30 +12,25 @@ pub struct PyTimecurve {
 #[pymethods]
 
 impl PyTimecurve {
-    #[new]
-    pub fn new_empty() -> Self {
-        PyTimecurve {
-            timecurve: Timecurve::new_empty(""),
-        }
-    }
-    #[warn(private_interfaces)]
-    pub fn from_input_data(&mut self, input_data: &PyInputData) -> Vec<Self> {
+    #[staticmethod]
+    pub fn from_data(input_data: &PyInputData) -> PyResult<Vec<Self>> {
         let a = Timecurve::from_input_data(&input_data.inputdata, ClassicalMDS::new());
         match a {
-            Ok(v) => v
+            Ok(v) => Ok(v
                 .into_iter()
                 .map(|tc| PyTimecurve { timecurve: tc })
-                .collect(),
-            Err(e) => {
-                panic!("Error: {}", e);
-            }
+                .collect()),
+            Err(e) => Err(PyValueError::new_err(e.to_string())),
         }
     }
-
-    pub fn print(&self) {
+    fn print(&self) -> PyResult<()> {
+        if self.timecurve.points.is_empty() {
+            return Err(PyValueError::new_err("Timecurve is empty"));
+        }
         println!("Curve for dataset '{}' :", self.timecurve.name);
         for (i, p) in self.timecurve.points.iter().enumerate() {
             println!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.0, p.pos.1);
         }
+        Ok(())
     }
 }
