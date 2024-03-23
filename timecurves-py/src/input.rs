@@ -1,4 +1,4 @@
-use pyo3::prelude::*;
+use pyo3::{exceptions::PyValueError, prelude::*};
 use timecurves_rs::input::{Dataset, InputData};
 
 #[pyclass(name = "inputdata")]
@@ -7,34 +7,8 @@ pub struct PyInputData {
 }
 #[pymethods]
 impl PyInputData {
-    #[new]
-    fn new() -> Self {
-        PyInputData {
-            inputdata: InputData {
-                distancematrix: Vec::new(),
-                data: Vec::new(),
-            },
-        }
-    }
-
-    fn from_filename(&mut self, filename: &str) -> () {
-        self.inputdata = match InputData::from_filename(filename) {
-            Ok(v) => v,
-            Err(e) => {
-                panic!("Error: {}", e);
-            }
-        }
-    }
-
-    fn from_str(&mut self, string: &str) -> () {
-        self.inputdata = match InputData::from_str(string) {
-            Ok(v) => v,
-            Err(e) => {
-                panic!("Error: {}", e);
-            }
-        }
-    }
-    fn from(&mut self, dmatrix: Vec<Vec<f64>>, datasets: Vec<(String, Vec<String>)>) -> () {
+    #[staticmethod]
+    pub fn from(dmatrix: Vec<Vec<f64>>, datasets: Vec<(String, Vec<String>)>) -> PyResult<Self> {
         let datasets = datasets
             .iter()
             .map(|(name, timelabels)| Dataset {
@@ -42,11 +16,23 @@ impl PyInputData {
                 timelabels: timelabels.clone(),
             })
             .collect();
-        self.inputdata = InputData::from(dmatrix, datasets);
-    }
 
-    #[getter]
-    fn distancematrix(&self) -> Vec<Vec<f64>> {
-        self.inputdata.distancematrix.clone()
+        Ok(PyInputData {
+            inputdata: InputData::from(dmatrix, datasets),
+        })
+    }
+    #[staticmethod]
+    pub fn from_filename(filename: &str) -> PyResult<Self> {
+        match InputData::from_filename(filename) {
+            Ok(v) => Ok(PyInputData { inputdata: v }),
+            Err(e) => Err(PyValueError::new_err(e.to_string())),
+        }
+    }
+    #[staticmethod]
+    pub fn from_str(string: &str) -> PyResult<Self> {
+        match InputData::from_str(string) {
+            Ok(v) => Ok(PyInputData { inputdata: v }),
+            Err(e) => Err(PyValueError::new_err(e.to_string())),
+        }
     }
 }
