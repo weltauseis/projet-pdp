@@ -6,7 +6,7 @@ use timecurves_rs::{
 
 use crate::input::PyInputData;
 
-#[pyclass(name = "timecurve")]
+#[pyclass(name = "timecurves")]
 pub struct PyTimecurves {
     pub timecurves: TimecurveSet,
 }
@@ -14,14 +14,6 @@ pub struct PyTimecurves {
 #[pymethods]
 
 impl PyTimecurves {
-    #[staticmethod]
-    pub fn from_data(input_data: &PyInputData) -> PyResult<Self> {
-        let a = Timecurve::from_input_data(&input_data.inputdata, ClassicalMDS::new());
-        match a {
-            Ok(v) => Ok(PyTimecurves { timecurves: v }),
-            Err(e) => Err(PyValueError::new_err(e.to_string())),
-        }
-    }
     fn print(&self) -> PyResult<()> {
         for tc in self.timecurves.curves.iter() {
             println!("Curve for dataset '{}' :", tc.name);
@@ -30,5 +22,13 @@ impl PyTimecurves {
             }
         }
         Ok(())
+    }
+}
+#[pyfunction]
+pub fn timecurves_from_data(input_data: &PyInputData) -> PyResult<PyTimecurves> {
+    let a = Timecurve::from_input_data(&input_data.inputdata, ClassicalMDS::new());
+    match a {
+        Ok(v) => Ok(PyTimecurves { timecurves: v }),
+        Err(e) => Err(PyValueError::new_err(e.to_string())),
     }
 }
