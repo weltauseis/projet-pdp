@@ -1,10 +1,8 @@
-use pyo3::{exceptions::PyValueError, prelude::*};
-use timecurves_rs::timecurve::Timecurve;
+use pyo3::prelude::*;
 
-use crate::timecurve::PyTimecurve;
+use crate::timecurve::PyTimecurves;
 
-const TIKZ_POINT_SIZE: f64 = 0.1;
-const TIKZ_CURVE_SIZE: f64 = 1.0;
+const TIKZ_DRAWING_SIZE: f64 = 10.;
 
 #[pyclass(name = "exporter")]
 pub struct PyExporter {
@@ -20,33 +18,21 @@ impl PyExporter {
             ext: ext.to_string(),
         }
     }
-    fn export(&self, pytc: Vec<PyObject>) -> PyResult<String> {
-        let pycurves: Vec<PyResult<PyTimecurve>> = pytc
-            .iter()
-            .map(|tc| convert_pyobject_to_timecurve(tc.clone()))
-            .collect();
-        let mut curves: Vec<Timecurve> = Vec::new();
-        for c in pycurves.iter() {
-            match c {
-                Ok(v) => {
-                    curves.push(v.clone().timecurve);
-                }
-                Err(_) => return Err(PyValueError::new_err("Invalid timecurve")),
-            }
-        }
+    fn export(&self, curves: &PyTimecurves) -> PyResult<String> {
         Ok(match self.ext.as_str() {
             "tikz" => timecurves_rs::exporters::Exporter::export(
-                &timecurves_rs::exporters::TikzExporter::new(TIKZ_POINT_SIZE, TIKZ_CURVE_SIZE),
-                &curves,
+                &timecurves_rs::exporters::TikzExporter::new(TIKZ_DRAWING_SIZE),
+                &curves.timecurves,
             ),
             _ => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::CSVExporter::new(),
-                &curves,
+                &curves.timecurves,
             ),
         })
     }
 }
 
-fn convert_pyobject_to_timecurve(pytc: PyObject) -> PyResult<PyTimecurve> {
-    Python::with_gil(|py| -> PyResult<PyTimecurve> { pytc.extract::<PyTimecurve>(py) })
-}
+// Use to convert a PyObject to a MyPyClass in runtime
+// fn convert_pyobject_to_timecurve(pytc: PyObject) -> PyResult<PyTimecurve> {
+//     Python::with_gil(|py| -> PyResult<PyTimecurve> { pytc.extract::<PyTimecurve>(py) })
+// }
