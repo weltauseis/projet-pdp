@@ -1,85 +1,80 @@
+use crate::timecurve::TimecurveSet;
+
 use super::Exporter;
 
 pub struct TikzExporter {
-    point_width: f64,
-    curve_width: f64,
+    drawing_size: f64,
 }
 
 impl TikzExporter {
-    pub fn new(point_width: f64, curve_width: f64) -> Self {
-        return Self {
-            point_width,
-            curve_width,
-        };
+    pub fn new(drawing_size: f64) -> Self {
+        return Self { drawing_size };
     }
 }
 
 impl Exporter for TikzExporter {
-    fn export(&self, curves: &Vec<crate::timecurve::Timecurve>) -> String {
+    fn export(&self, timecurve_set: &TimecurveSet) -> String {
         let mut output = String::new();
 
-        // header
-        output.push_str("\\documentclass[tikz,border=10pt]{standalone}\n");
-        output.push_str("\\begin{document}\n");
-        output.push_str("\\begin{tikzpicture}\n");
-        output.push_str("\\draw[thin,dotted] (-1,-1) grid (1,1);\n");
+        let point_width = self.drawing_size / 100.0;
+        let line_width = self.drawing_size / 150.0;
 
-        // points
-        for curve in curves {
-            for point in &curve.points {
+        // header
+        output.push_str("\\begin{tikzpicture}\n");
+        output.push_str(&format!(
+            "\\draw[thin,dotted] (0,0) grid ({0},{0});\n",
+            self.drawing_size
+        ));
+
+        // draw the lines first so they are in the background
+        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
+            // for each overlapping couple of 2 points
+            for i in 0..curve.points.len() - 1 {
+                let p1 = &curve.points[i];
+                let p2 = &curve.points[i + 1];
+
+                let u = i as f32 / (curve.points.len() - 1) as f32;
+                let color = super::curve_color_lerp(curve_id, u);
+
+                // draw the spline between the two points
                 output.push_str(&format!(
-                    "\\fill[black] ({},{}) circle ({});\n",
-                    point.pos.0, point.pos.1, self.point_width
+                    "\\draw [line width={:.4}cm, color={{rgb, 255:red, {}; green, {}; blue, {}}}] ({},{}) .. controls ({},{}) and ({},{}) .. ({},{});\n",
+                    line_width,
+                    color.0,
+                    color.1,
+                    color.2,
+                    p1.pos.0 * self.drawing_size,
+                    p1.pos.1 * self.drawing_size,
+                    p1.c_next.unwrap().0 * self.drawing_size,
+                    p1.c_next.unwrap().1 * self.drawing_size,
+                    p2.c_prev.unwrap().0 * self.drawing_size,
+                    p2.c_prev.unwrap().1 * self.drawing_size,
+                    p2.pos.0 * self.drawing_size,
+                    p2.pos.1 * self.drawing_size,
                 ));
             }
         }
 
-        // control points (optional)
-        for curve in curves {
-            for point in &curve.points {
-                if let Some(c_prev) = point.c_prev {
-                    output.push_str(&format!(
-                        "\\fill[red] ({},{}) circle ({});\n",
-                        c_prev.0,
-                        c_prev.1,
-                        self.point_width * 0.5
-                    ));
-                }
-                if let Some(c_next) = point.c_next {
-                    output.push_str(&format!(
-                        "\\fill[blue] ({},{}) circle ({});\n",
-                        c_next.0,
-                        c_next.1,
-                        self.point_width * 0.5
-                    ));
-                }
-            }
-        }
-
-        // edges
-        for curve in curves {
-            for slice in curve.points.windows(2) {
-                let p1 = &slice[0];
-                let p2 = &slice[1];
+        // draw the points last so they sit on top of the lines
+        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
+            for (i, point) in curve.points.iter().enumerate() {
+                let u = i as f32 / (curve.points.len() - 1) as f32;
+                let color = super::curve_color_lerp(curve_id, u);
 
                 output.push_str(&format!(
-                    "\\draw [line width={}] ({},{}) .. controls ({},{}) and ({},{}) .. ({},{});\n",
-                    self.curve_width,
-                    p1.pos.0,
-                    p1.pos.1,
-                    p1.c_next.unwrap().0,
-                    p1.c_next.unwrap().1,
-                    p2.c_prev.unwrap().0,
-                    p2.c_prev.unwrap().1,
-                    p2.pos.0,
-                    p2.pos.1,
-                ))
+                    "\\draw[color=white, thick, fill={{rgb, 255:red, {}; green, {}; blue, {}}}] ({},{}) circle ({});\n",
+                    color.0,
+                    color.1,
+                    color.2,
+                    point.pos.0 * self.drawing_size,
+                    point.pos.1 * self.drawing_size,
+                    point_width
+                ));
             }
         }
 
         // end of file
         output.push_str("\\end{tikzpicture}\n");
-        output.push_str("\\end{document}\n");
 
         return output;
     }

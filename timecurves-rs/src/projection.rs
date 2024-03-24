@@ -12,6 +12,7 @@ impl ClassicalMDS {
 }
 // TODO : (FACILE) rajouter la crate log (https://github.com/rust-lang/log) pour remplacer les printf de débug
 // TODO : implémenter la gestion d'erreur pour cette fonction
+//        par exemple, une matrice non carrée ou un nombre de points différent de la taille de la matrice
 impl ProjectionAlgorithm for ClassicalMDS {
     fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<(f64, f64)> {
         let n = distance_matrix.len();
