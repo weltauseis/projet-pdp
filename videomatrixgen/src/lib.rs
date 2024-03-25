@@ -1,11 +1,12 @@
 //this file will contain the code for the video converter
 //video are cut into 1 seconds frames and then converted to images
-//the images are converted via a color histogram comparaison to a distance matrix
+//the images are converted  to a distance matrix
 
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
+use image;
 
 pub struct Video {
     path: String,
@@ -15,12 +16,12 @@ pub struct Video {
 pub struct Frame {
     path: String,
     timestamp: String,
-    histogram: Vec<u32>,
 }
 
 //convert a video to a set of frames
 pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<(), Box<dyn Error>>{
-    let _video = Video {
+    let old_output_path = Path::new(output_path);
+    let mut _video = Video {
         path: video_path.to_string(),
         frames: Vec::new(),
     };
@@ -42,8 +43,20 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<(), Box<dy
             &output_path,
         ])
         .output()?;
+    let mut i = 1;
+    loop {
+        let frame_path = format!("{}/frame{:04}.png", old_output_path.to_str().unwrap(), i);
+        if !Path::new(&frame_path).exists() {
+            break;
+        }
+        let frame = Frame {
+            path: frame_path,
+            timestamp: i.to_string(),
+        };
+        _video.frames.push(frame);
+        i += 1;
+    }
     Ok(())
 }
-
-
-
+//compute the normalized absolute pixel difference between two frames
+//DANP = Σ |I1(x, y) - I2(x, y)| / N
