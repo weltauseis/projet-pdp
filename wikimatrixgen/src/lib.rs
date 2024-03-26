@@ -4,20 +4,16 @@ use serde::{Deserialize, Serialize};
 // Response for article history request
 #[derive(Serialize, Deserialize, Debug)]
 pub struct HistoryRes {
-    pub revisions: Vec<Revision>,
+    pub latest: String,           // API route to get the latest revisions
+    pub older: Option<String>,    // If available, API route to get the prior revisions
+    pub newer: Option<String>,    // If available, API route to get the following revisions
+    pub revisions: Vec<Revision>, // Array of 0-20 revisions
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Revision {
-    pub id: u32,
-    pub timestamp: String,
-    pub comment: String,
-}
-// Response for article revisions comparison request
-#[derive(Serialize, Deserialize, Debug)]
-pub struct CompareRes {
-    pub diff: Vec<Diff>,
-}
-#[derive(Serialize, Deserialize, Debug)]
-pub struct Diff {
-    pub r#type: u64,
+    pub id: u32,                // Revision identifier
+    pub timestamp: String,      // Time of the edit in ISO 8601 format
+    pub comment: String, // Comment or edit summary written by the editor. For revisions without a comment, the API returns null or "".
+    pub delta: Option<i64>, // Number of bytes changed, positive or negative, between a revision and the preceding revision (example: -20). If the preceding revision is unavailable, the API returns null.
+    pub source: Option<String>, // Revision content in the format specified by the content_model property
 }

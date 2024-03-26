@@ -1,9 +1,10 @@
-use std::fs::File;
-use std::io::Write;
+use std::process::exit;
 
 use clap::Parser;
-use reqwest::header::USER_AGENT;
-use wikimatrixgen::{CompareRes, HistoryRes};
+use edit_distance::edit_distance;
+use serde_json::json;
+use std::io::Write;
+use wikimatrixgen::{HistoryRes, Revision};
 
 // struct for automatic cli argument parsing with clap
 #[derive(Parser)]
@@ -17,141 +18,129 @@ struct Command {
     page: String,
     /// output file
     output: String,
-    /// wikimedia API auth token, see https://api.wikimedia.org/wiki/Getting_started_with_Wikimedia_APIs
-    #[arg(short, long)]
-    token: Option<String>,
     /// language code of the wikipedia page : en, fr, de, ...
-    #[arg(short, long)]
-    language: Option<String>,
+    #[arg(short, default_value = "en")]
+    lang_code: String,
+    /// Number of latest revisions to take into account
+    #[arg(short, default_value = "20")]
+    number: usize,
 }
 
+// https://www.mediawiki.org/wiki/API:REST_API/Reference
 fn main() {
+    // parse CLI args
     let cmd = Command::parse();
 
-    let lang_code = cmd.language.unwrap_or("en".to_string());
-    let mut token = String::new();
-
-    if let None = cmd.token {
-        println!("Enter your wikipedia API token (see https://api.wikimedia.org/wiki/Getting_started_with_Wikimedia_APIs) :");
-        std::io::stdin().read_line(&mut token).unwrap();
-    } else {
-        token = cmd.token.unwrap().clone();
-    }
-
+    // http client
     let client = reqwest::blocking::Client::new();
 
-    println!("Calling wikipedia API to get a list of the article's revisions...");
-    let response_body = client
-        .get(format!(
-            "https://api.wikimedia.org/core/v1/wikipedia/{}/page/{}/history",
-            lang_code, cmd.page
-        ))
-        .header(USER_AGENT, "wikipedia matrix generator")
-        .bearer_auth(&token.trim())
-        .send()
-        .unwrap()
-        .text()
-        .unwrap();
+    let mut revisions = Vec::new();
+    let mut url = format!(
+        "https://{}.wikipedia.org/w/rest.php/v1/page/{}/history",
+        cmd.lang_code, cmd.page
+    );
 
-    let history: HistoryRes = match serde_json::from_str(response_body.as_str()) {
-        Ok(h) => h,
-        Err(_) => {
-            panic!("Error during request : {}", response_body);
+    // STEP 1 : GET ALL THE REVISIONS
+
+    // fill the revisions array
+    println!("Getting a list of revisions from Wikipedia's API...");
+    while revisions.len() < cmd.number {
+        // call the API to get 20 revisions
+        let response_body = client.get(&url).send().unwrap().text().unwrap();
+
+        // parse the response into a HistoryRes object
+        let history: HistoryRes = match serde_json::from_str(response_body.as_str()) {
+            Ok(h) => h,
+            Err(_) => {
+                println!("Error during request : {}", response_body);
+                exit(1);
+            }
+        };
+
+        // add all revisions to the array
+        revisions.extend(history.revisions);
+
+        // update the URL
+        if let Some(new_url) = history.older {
+            url = new_url;
+        } else {
+            break; // no more revisions to fetch
         }
-    };
+    }
 
-    let n = history.revisions.len().clamp(0, 50);
-    let mut matrix: Vec<f64> = Vec::with_capacity(n * n);
+    // if we fetched more than enough, truncate the array to keep only n revisions
+    revisions.truncate(cmd.number);
 
-    println!("Comparing all the revisions...");
+    println!("Done ! {} revisions found.", revisions.len());
+
+    // STEP 2 : FETCH THE WIKITEXT SOURCE CODE FOR EACH REVISION
+    println!("Fetching wikitext source for all revisions...");
+    let mut wikitexts = Vec::new();
+    wikitexts.resize(revisions.len(), String::new());
+    for (i, rev) in revisions.iter().enumerate() {
+        print_progress_bar(i, revisions.len());
+        let response_body = client
+            .get(format!(
+                "https://{}.wikipedia.org/w/rest.php/v1/revision/{}",
+                cmd.lang_code, rev.id
+            ))
+            .send()
+            .unwrap()
+            .text()
+            .unwrap();
+
+        let revision_with_source: Revision = match serde_json::from_str(response_body.as_str()) {
+            Ok(h) => h,
+            Err(_) => {
+                println!("Error during request : {}", response_body);
+                exit(1);
+            }
+        };
+
+        // we can panic here since there's nothing we can do without the source anyway
+        let src = revision_with_source.source.unwrap();
+        wikitexts[i] = src;
+    }
+    println!("");
+
+    // STEP 3 : COMPUTE LEVENSHTEIN DISTANCE BETWEEN EACH PAIR TO PRODUCE A DISTANCE MATRIX
+
+    let n = revisions.len();
+    let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(n * n);
+    matrix.resize(n, vec![0.0; n]);
+
+    println!("Computing distance for every possible pair...");
     for i in 0..n {
         for j in 0..n {
-            let progress = (((i * n + j) as f64 / (n * n) as f64) * 100.0) as u64 + 1;
-            print!("\r Progress : [");
-            for i in (0..100).step_by(10) {
-                print!("{}", if i < progress { "#" } else { "-" });
-            }
-            print!(
-                "] {}% ({}/{}) : Diff between #{} & #{}    ",
-                progress,
-                i * n + j,
-                n * n,
-                history.revisions[i].id,
-                history.revisions[j].id
-            );
-            std::io::stdout().flush().unwrap();
-
-            let body = client
-                .get(format!(
-                    "https://api.wikimedia.org/core/v1/wikipedia/{}/revision/{}/compare/{}",
-                    lang_code, history.revisions[i].id, history.revisions[j].id
-                ))
-                .bearer_auth(&token.trim())
-                .header(USER_AGENT, "wikipedia matrix generator")
-                .send()
-                .unwrap()
-                .text()
-                .unwrap();
-
-            let req: Result<CompareRes, _> = serde_json::from_str(body.as_str());
-            let res = match req {
-                Ok(c) => c,
-                Err(_) => panic!("Error during request : {}", body),
-            };
-
-            let mut dist = 0.0;
-
-            for d in res.diff {
-                if d.r#type != 0 {
-                    dist += 1.0
-                };
-            }
-
-            matrix.push(dist);
+            print_progress_bar(i * n + j, n * n);
+            let a = &wikitexts[i];
+            let b = &wikitexts[j];
+            matrix[i][j] = edit_distance(a, b) as f64;
         }
     }
+    println!("");
 
-    let mut output_file = File::create(&cmd.output).unwrap();
+    // STEP 4 : WRITE THE JSON FILE
 
-    writeln!(&mut output_file, "{{").unwrap();
-    // distance matrix
-    writeln!(&mut output_file, "    \"distancematrix\": [").unwrap();
-    for i in 0..n {
-        write!(&mut output_file, "        [").unwrap();
-        for j in 0..n {
-            write!(&mut output_file, "{}", matrix[i * n + j]).unwrap();
-            if j < n - 1 {
-                write!(&mut output_file, ",").unwrap();
-            }
-        }
-        write!(&mut output_file, "]").unwrap();
-        if i < n - 1 {
-            write!(&mut output_file, ",").unwrap();
-        }
-        writeln!(&mut output_file).unwrap();
+    let json_output = json!({
+        "distancematrix": matrix,
+        "data": [{
+            "name": cmd.page,
+            "timelabels": revisions.iter().map(|rev| rev.timestamp.clone()).collect::<Vec<String>>()
+        }]
+    });
+
+    let mut f = std::fs::File::create(cmd.output).unwrap();
+
+    write!(&mut f, "{}", json_output.to_string()).unwrap();
+}
+
+fn print_progress_bar(i: usize, max: usize) {
+    let progress = (i + 1) as f64 / max as f64 * 100.0;
+    print!("\rProgress : [");
+    for i in (0..100).step_by(3) {
+        print!("{}", if i <= progress as i32 { "#" } else { "-" });
     }
-    writeln!(&mut output_file, "    ],").unwrap();
-    // data
-    writeln!(&mut output_file, "    \"data\": [").unwrap();
-    writeln!(&mut output_file, "        {{").unwrap();
-    writeln!(&mut output_file, "            \"name\": \"{}\",", cmd.page).unwrap();
-    writeln!(&mut output_file, "            \"timelabels\": [").unwrap();
-    for j in 0..n {
-        write!(
-            &mut output_file,
-            "                \"{}\"",
-            history.revisions[j].timestamp
-        )
-        .unwrap();
-        if j < n - 1 {
-            write!(&mut output_file, ",").unwrap();
-        }
-        writeln!(&mut output_file).unwrap();
-    }
-    writeln!(&mut output_file, "            ]").unwrap();
-    writeln!(&mut output_file, "        }}").unwrap();
-    writeln!(&mut output_file, "    ]").unwrap();
-    writeln!(&mut output_file, "}}").unwrap();
-
-    println!("\n Done ! Output file written in {}", &cmd.output);
+    print!("] {:.0}% ({} / {})", progress, i + 1, max);
+    std::io::stdout().flush().unwrap();
 }
