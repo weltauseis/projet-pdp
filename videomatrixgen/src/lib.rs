@@ -46,7 +46,7 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box
         }
         let frame = Frame {
             path: frame_path,
-            timestamp: format! {"2000-01-01 00:{:02}:{:02}", i / 60, i % 60},
+            timestamp: format! {"2000-01-01 00:{:02}:{:02}.0", i / 60, i % 60},
         };
         _video.frames.push(frame);
         i += 1;
