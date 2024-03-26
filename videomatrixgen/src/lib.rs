@@ -8,6 +8,8 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
+use std::thread::scope;
 
 pub struct Video {
     pub path: String,
@@ -71,6 +73,9 @@ pub fn frame_distance(frame1: &Frame, frame2: &Frame) -> i32 {
     distance
 }
 
+
+
+
 //compute the distance matrix between all frames in a video
 pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<i32>> {
     let mut matrix = vec![vec![0; video.frames.len()]; video.frames.len()];
@@ -88,10 +93,31 @@ pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<i32>> {
     matrix
 }
 
+pub fn distance_matrix_calculate_multithreads(video: &Video) -> Vec<Vec<i32>> {
+    let matrix = Arc::new(Mutex::new(vec![vec![0; video.frames.len()]; video.frames.len()]));
+    let mut _distance = 0;
+    scope(|s| {
+        for i in 0..video.frames.len() {
+            let matrix = Arc::clone(&matrix);
+            s.spawn(move || {
+                for j in (0+i)..video.frames.len() {
+                    if i == j {
+                        continue;
+                    }
+                    _distance = frame_distance(&video.frames[i], &video.frames[j]);
+                    let mut matrix = matrix.lock().unwrap();
+                    matrix[i][j] = _distance;
+                    matrix[j][i] = _distance;
+                }
+            });
+        }
+    });
+    Arc::try_unwrap(matrix).unwrap().into_inner().unwrap()
+}
+
 pub fn create_json_file_from_video(input_video: &str, output_images: &str, output_file: &str) {
     let video = video_to_frames(input_video, output_images).unwrap();
-    let distance_matrix = distance_matrix_calculate(&video);
-
+    let distance_matrix = distance_matrix_calculate_multithreads(&video);
     let mut output_file = File::create(output_file).unwrap();
 
     writeln!(&mut output_file, "{{").unwrap();
