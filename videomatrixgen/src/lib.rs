@@ -2,12 +2,12 @@
 //video are cut into 1 seconds frames and then converted to images
 //the images are converted  to a distance matrix
 
+use image;
 use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use image;
 
 pub struct Video {
     pub path: String,
@@ -20,7 +20,7 @@ pub struct Frame {
 }
 
 //convert a video to a set of frames
-pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box<dyn Error>>{
+pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box<dyn Error>> {
     let old_output_path = Path::new(output_path);
     let mut _video = Video {
         path: video_path.to_string(),
@@ -36,13 +36,7 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box
     let output_path = output_path.to_str().unwrap();
     let output_path = format!("{}/frame%04d.png", output_path);
     Command::new("ffmpeg")
-        .args(&[
-            "-i",
-            video_path,
-            "-vf",
-            "fps=1",
-            &output_path,
-        ])
+        .args(&["-i", video_path, "-vf", "fps=1", &output_path])
         .output()?;
     let mut i = 1;
     loop {
@@ -52,7 +46,7 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box
         }
         let frame = Frame {
             path: frame_path,
-            timestamp: format!{"2000-01-01 00:{:02}:{:02}", i / 60, i % 60},
+            timestamp: format! {"2000-01-01 00:{:02}:{:02}", i / 60, i % 60},
         };
         _video.frames.push(frame);
         i += 1;
@@ -62,24 +56,24 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box
 //compute the normalized absolute pixel difference between two frames
 //DANP = Σ |I1(x, y) - I2(x, y)| / N
 
-pub fn frame_distance(frame1: &Frame, frame2: &Frame) -> f64 {
+pub fn frame_distance(frame1: &Frame, frame2: &Frame) -> i32 {
     let img1 = image::open(&frame1.path).unwrap();
     let img2 = image::open(&frame2.path).unwrap();
     let img1 = img1.to_luma8();
     let img2 = img2.to_luma8();
-    let mut distance = 0.0;
+    let mut distance = 0;
     for (p1, p2) in img1.pixels().zip(img2.pixels()) {
-        let p1 = p1.0[0] as f64;
-        let p2 = p2.0[0] as f64;
+        let p1 = p1.0[0] as i32;
+        let p2 = p2.0[0] as i32;
         distance += (p1 - p2).abs();
     }
-    distance /= img1.width() as f64 * img1.height() as f64;
+    distance /= img1.width() as i32 * img1.height() as i32;
     distance
 }
 
 //compute the distance matrix between all frames in a video
-pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<f64>> {
-    let mut matrix = vec![vec![0.0; video.frames.len()]; video.frames.len()];
+pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<i32>> {
+    let mut matrix = vec![vec![0; video.frames.len()]; video.frames.len()];
     for i in 0..video.frames.len() {
         for j in 0..video.frames.len() {
             matrix[i][j] = frame_distance(&video.frames[i], &video.frames[j]);
@@ -88,10 +82,10 @@ pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<f64>> {
     matrix
 }
 
-pub fn create_json_file_from_video(input_video : &str, output_images : &str, output_file : &str){
+pub fn create_json_file_from_video(input_video: &str, output_images: &str, output_file: &str) {
     let video = video_to_frames(input_video, output_images).unwrap();
     let distance_matrix = distance_matrix_calculate(&video);
-    
+
     let mut output_file = File::create(output_file).unwrap();
 
     writeln!(&mut output_file, "{{").unwrap();
@@ -115,7 +109,12 @@ pub fn create_json_file_from_video(input_video : &str, output_images : &str, out
     // data
     writeln!(&mut output_file, "    \"data\": [").unwrap();
     writeln!(&mut output_file, "        {{").unwrap();
-    writeln!(&mut output_file, "            \"name\": \"{}\",", video.path).unwrap();
+    writeln!(
+        &mut output_file,
+        "            \"name\": \"{}\",",
+        video.path
+    )
+    .unwrap();
     writeln!(&mut output_file, "            \"timelabels\": [").unwrap();
     for j in 0..video.frames.len() {
         write!(
