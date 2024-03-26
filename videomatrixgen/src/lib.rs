@@ -74,9 +74,15 @@ pub fn frame_distance(frame1: &Frame, frame2: &Frame) -> i32 {
 //compute the distance matrix between all frames in a video
 pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<i32>> {
     let mut matrix = vec![vec![0; video.frames.len()]; video.frames.len()];
+    let mut _distance = 0;
     for i in 0..video.frames.len() {
-        for j in 0..video.frames.len() {
-            matrix[i][j] = frame_distance(&video.frames[i], &video.frames[j]);
+        for j in (0+i)..video.frames.len() {
+            if i == j {
+                continue;
+            }
+            _distance = frame_distance(&video.frames[i], &video.frames[j]);
+            matrix[i][j] = _distance;
+            matrix[j][i] = _distance;
         }
     }
     matrix
