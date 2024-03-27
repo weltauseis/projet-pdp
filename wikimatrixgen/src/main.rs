@@ -2,8 +2,10 @@ use std::process::exit;
 
 use clap::Parser;
 use edit_distance::edit_distance;
+use rayon::prelude::*;
 use serde_json::json;
 use std::io::Write;
+use std::sync::Mutex;
 use wikimatrixgen::{HistoryRes, Revision};
 
 // struct for automatic cli argument parsing with clap
@@ -108,31 +110,50 @@ fn main() {
     let n = revisions.len();
     let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(n * n);
     matrix.resize(n, vec![0.0; n]);
+    let matrix = Mutex::new(matrix);
 
     println!("Computing distance for every possible pair...");
+
     for i in 0..n {
-        for j in 0..n {
-            print_progress_bar(i * n + j, n * n);
+        print_progress_bar(i * n - 1, n * n);
+
+        ((i + 1)..n).into_par_iter().for_each(|j| {
             let a = &wikitexts[i];
             let b = &wikitexts[j];
-            matrix[i][j] = edit_distance(a, b) as f64;
-        }
+            let distance = edit_distance(a, b) as f64;
+
+            let mut matrix = matrix.lock().unwrap();
+            matrix[i][j] = distance;
+            drop(matrix); // Unlock the mutex
+        });
+        print_progress_bar(i * n - 1, n * n);
     }
     println!("");
+
+    for i in 0..n {
+        for j in 0..n {
+            if j < i {
+                let mut matrix = matrix.lock().unwrap();
+                matrix[i][j] = matrix[j][i];
+            }
+        }
+    }
 
     // STEP 4 : WRITE THE JSON FILE
 
     let json_output = json!({
-        "distancematrix": matrix,
+        "distancematrix": *matrix.lock().unwrap(),
         "data": [{
             "name": cmd.page,
             "timelabels": revisions.iter().map(|rev| rev.timestamp.clone()).collect::<Vec<String>>()
         }]
     });
 
-    let mut f = std::fs::File::create(cmd.output).unwrap();
+    let mut f = std::fs::File::create(&cmd.output).unwrap();
 
     write!(&mut f, "{}", json_output.to_string()).unwrap();
+
+    println!("Done ! File saved in '{}'.", &cmd.output);
 }
 
 fn print_progress_bar(i: usize, max: usize) {
