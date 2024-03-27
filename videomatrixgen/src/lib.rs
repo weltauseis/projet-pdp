@@ -8,14 +8,14 @@ use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Mutex};
-use std::thread::scope;
+use tokio::task;
 
 pub struct Video {
     pub path: String,
     pub frames: Vec<Frame>,
 }
 
+#[derive(Clone)]
 pub struct Frame {
     pub path: String,
     pub timestamp: String,
@@ -34,12 +34,17 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box
     if !output_path.exists() {
         fs::create_dir(output_path)?;
     }
+    if output_path.exists() {
+        fs::remove_dir_all(output_path)?;
+        fs::create_dir(output_path)?;
+    }
 
     let output_path = output_path.to_str().unwrap();
     let output_path = format!("{}/frame%04d.png", output_path);
     Command::new("ffmpeg")
         .args(&["-i", video_path, "-vf", "fps=1", &output_path])
         .output()?;
+    //récupère le nombre de frames
     let mut i = 1;
     loop {
         let frame_path = format!("{}/frame{:04}.png", old_output_path.to_str().unwrap(), i);
@@ -73,51 +78,39 @@ pub fn frame_distance(frame1: &Frame, frame2: &Frame) -> i32 {
     distance
 }
 
-
-
-
 //compute the distance matrix between all frames in a video
-pub fn distance_matrix_calculate(video: &Video) -> Vec<Vec<i32>> {
+pub async fn distance_matrix_calculate_multithreads(video: &Video) -> Vec<Vec<i32>> {
     let mut matrix = vec![vec![0; video.frames.len()]; video.frames.len()];
     let mut _distance = 0;
+    let mut tasks = Vec::new();
     for i in 0..video.frames.len() {
-        for j in (0+i)..video.frames.len() {
+        for j in (0 + i)..video.frames.len() {
             if i == j {
                 continue;
             }
-            _distance = frame_distance(&video.frames[i], &video.frames[j]);
-            matrix[i][j] = _distance;
-            matrix[j][i] = _distance;
+            let frame_i = video.frames[i].clone();
+            let frame_j = video.frames[j].clone();
+            tasks.push(task::spawn(async move {
+                let distance = frame_distance(&frame_i, &frame_j);
+                (i, j, distance)
+            }));
         }
+    }
+    for task in tasks {
+        let (i, j, distance) = task.await.unwrap();
+        matrix[i][j] = distance;
+        matrix[j][i] = distance;
     }
     matrix
 }
 
-pub fn distance_matrix_calculate_multithreads(video: &Video) -> Vec<Vec<i32>> {
-    let matrix = Arc::new(Mutex::new(vec![vec![0; video.frames.len()]; video.frames.len()]));
-    let mut _distance = 0;
-    scope(|s| {
-        for i in 0..video.frames.len() {
-            let matrix = Arc::clone(&matrix);
-            s.spawn(move || {
-                for j in (0+i)..video.frames.len() {
-                    if i == j {
-                        continue;
-                    }
-                    _distance = frame_distance(&video.frames[i], &video.frames[j]);
-                    let mut matrix = matrix.lock().unwrap();
-                    matrix[i][j] = _distance;
-                    matrix[j][i] = _distance;
-                }
-            });
-        }
-    });
-    Arc::try_unwrap(matrix).unwrap().into_inner().unwrap()
-}
-
-pub fn create_json_file_from_video(input_video: &str, output_images: &str, output_file: &str) {
+pub async fn create_json_file_from_video(
+    input_video: &str,
+    output_images: &str,
+    output_file: &str,
+) {
     let video = video_to_frames(input_video, output_images).unwrap();
-    let distance_matrix = distance_matrix_calculate_multithreads(&video);
+    let distance_matrix = (distance_matrix_calculate_multithreads(&video)).await;
     let mut output_file = File::create(output_file).unwrap();
 
     writeln!(&mut output_file, "{{").unwrap();
