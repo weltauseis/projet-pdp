@@ -11,5 +11,5 @@ async fn main() {
         return;
     }
     let video_path = &args[1];
-    create_json_file_from_video(video_path, "output", "output.json").await;
+    create_json_file_from_video(video_path, "frames", "output.json").await;
 }
