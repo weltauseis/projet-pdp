@@ -13,7 +13,7 @@ pub struct PyExporter {
 impl PyExporter {
     #[new]
     fn new(str: Option<&str>) -> Self {
-        let ext = str.unwrap_or("csv");
+        let ext = str.unwrap_or("tikz");
         PyExporter {
             ext: ext.to_string(),
         }
@@ -24,10 +24,19 @@ impl PyExporter {
                 &timecurves_rs::exporters::TikzExporter::new(TIKZ_DRAWING_SIZE),
                 &curves.timecurves,
             ),
-            _ => timecurves_rs::exporters::Exporter::export(
+            "csv" => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::CSVExporter::new(),
                 &curves.timecurves,
             ),
+            "svg" => timecurves_rs::exporters::Exporter::export(
+                &timecurves_rs::exporters::SVGExporter::new(),
+                &curves.timecurves,
+            ),
+            _ => {
+                return Err(pyo3::exceptions::PyValueError::new_err(
+                    "Unknown export format.",
+                ))
+            }
         })
     }
 }
