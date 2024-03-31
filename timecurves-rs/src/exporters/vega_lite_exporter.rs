@@ -9,10 +9,8 @@ pub struct VegaLiteExporter {
 }
 
 impl VegaLiteExporter {
-    pub fn new(size: Option<f64>) -> Self {
-        return Self {
-            size: size.unwrap_or(400.0) as u64,
-        };
+    pub fn new(size: u64) -> Self {
+        return Self { size };
     }
 }
 

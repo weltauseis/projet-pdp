@@ -7,10 +7,8 @@ pub struct TikzExporter {
 }
 
 impl TikzExporter {
-    pub fn new(drawing_size: Option<f64>) -> Self {
-        return Self {
-            drawing_size: drawing_size.unwrap_or(10.0),
-        };
+    pub fn new(drawing_size: f64) -> Self {
+        return Self { drawing_size };
     }
 }
 

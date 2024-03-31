@@ -72,9 +72,9 @@ fn main() {
 
     let exporter: Box<dyn Exporter> = match cmd.format.to_lowercase().as_str() {
         "csv" => Box::new(CSVExporter::new()),
-        "tikz" => Box::new(TikzExporter::new(cmd.size)),
+        "tikz" => Box::new(TikzExporter::new(cmd.size.unwrap_or(10.0))),
         "svg" => Box::new(SVGExporter::new()),
-        "vegalite" => Box::new(VegaLiteExporter::new(cmd.size)),
+        "vegalite" => Box::new(VegaLiteExporter::new(cmd.size.unwrap_or(400.0) as u64)),
         _ => {
             println!("Unknown output format.");
             exit(1);
