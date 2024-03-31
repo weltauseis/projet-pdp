@@ -23,9 +23,9 @@ struct CommandLine {
     /// Print additional debug information to the standard output
     #[arg(short, long)]
     verbose: bool,
-    /// Specifies the size of the drawing in the Tikz output format, in cm.
-    #[arg(long, default_value = "10")]
-    tikz_drawing_size: f64,
+    /// Specifies the size of the output graph, for formats that support it. Unit is cm for Tikz, px for Vega-lite
+    #[arg(short, long)]
+    size: Option<f64>,
 }
 
 fn main() {
@@ -72,9 +72,9 @@ fn main() {
 
     let exporter: Box<dyn Exporter> = match cmd.format.to_lowercase().as_str() {
         "csv" => Box::new(CSVExporter::new()),
-        "tikz" => Box::new(TikzExporter::new(cmd.tikz_drawing_size)),
+        "tikz" => Box::new(TikzExporter::new(cmd.size)),
         "svg" => Box::new(SVGExporter::new()),
-        "vegalite" => Box::new(VegaLiteExporter::new()),
+        "vegalite" => Box::new(VegaLiteExporter::new(cmd.size)),
         _ => {
             println!("Unknown output format.");
             exit(1);

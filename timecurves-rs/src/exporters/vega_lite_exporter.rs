@@ -9,8 +9,10 @@ pub struct VegaLiteExporter {
 }
 
 impl VegaLiteExporter {
-    pub fn new() -> Self {
-        return Self { size: 300 };
+    pub fn new(size: Option<f64>) -> Self {
+        return Self {
+            size: size.unwrap_or(400.0) as u64,
+        };
     }
 }
 
@@ -33,7 +35,7 @@ impl Exporter for VegaLiteExporter {
             "data" : data,
             "mark": {
                 "type": "line",
-                "point": true,
+                "point": {"size" : 50},
                 "interpolate":"catmull-rom"
             },
             "params": [{
