@@ -11,12 +11,10 @@ use wikimatrixgen::{HistoryRes, Revision};
 // struct for automatic cli argument parsing with clap
 #[derive(Parser)]
 #[command(
-    about = "A simple tool to generate distance matrices for time curves visualisation from a wikipedia article.\n
-    NOTE : The wikimedia API only allows for 5000 requests / hour even with a valid token, so this tool only takes\n
-     into account the 50 last revisions of an article."
+    about = "A simple tool to generate distance matrices for time curves visualisation from a wikipedia article."
 )]
 struct Command {
-    /// name of the wikipedia page
+    /// name of the wikipedia page in URL, e.g. "Hideo_Kojima"
     page: String,
     /// output file
     output: String,
@@ -114,8 +112,9 @@ fn main() {
 
     println!("Computing distance for every possible pair...");
 
+    // compute distance in parallel, for half the matrix
     for i in 0..n {
-        print_progress_bar(i * n - 1, n * n);
+        print_progress_bar(i * n, n * n);
 
         ((i + 1)..n).into_par_iter().for_each(|j| {
             let a = &wikitexts[i];
@@ -126,10 +125,11 @@ fn main() {
             matrix[i][j] = distance;
             drop(matrix); // Unlock the mutex
         });
-        print_progress_bar(i * n - 1, n * n);
     }
+    print_progress_bar(n * n, n * n);
     println!("");
 
+    // mirror the computed half
     for i in 0..n {
         for j in 0..n {
             if j < i {
@@ -140,11 +140,10 @@ fn main() {
     }
 
     // STEP 4 : WRITE THE JSON FILE
-
     let json_output = json!({
         "distancematrix": *matrix.lock().unwrap(),
         "data": [{
-            "name": cmd.page,
+            "name": format!("{}.wikipedia.org/wiki/{}", cmd.lang_code, cmd.page),
             "timelabels": revisions.iter().map(|rev| rev.timestamp.clone()).collect::<Vec<String>>()
         }]
     });
@@ -157,7 +156,7 @@ fn main() {
 }
 
 fn print_progress_bar(i: usize, max: usize) {
-    let progress = (i + 1) as f64 / max as f64 * 100.0;
+    let progress = i as f64 / (max - 1) as f64 * 100.0;
     print!("\rProgress : [");
     for i in (0..100).step_by(3) {
         print!("{}", if i <= progress as i32 { "#" } else { "-" });
