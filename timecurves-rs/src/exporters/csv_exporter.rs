@@ -15,52 +15,15 @@ impl Exporter for CSVExporter {
         let mut output = String::new();
 
         // CSV header
-        for (id, curve) in timecurve_set.curves.iter().enumerate() {
-            output.push_str(&format!(
-                "{1}{0}_px,{0}_py,{0}_cx,{0}_cy",
-                curve.name.as_str(),
-                if id > 0 { "," } else { "" }
-            ));
-        }
-
-        output.push('\n');
+        output.push_str("curve,label,x,y\n");
 
         // points values
-        for (id, curve) in timecurve_set.curves.iter().enumerate() {
+        for curve in &timecurve_set.curves {
             for point in &curve.points {
-                // add a row with point coordinates
-                for _ in 0..id {
-                    output.push_str(",,,,");
-                }
-                output.push_str(&format!("{},{},,", point.pos.0, point.pos.1));
-                for _ in 0..(timecurve_set.curves.len()) - id - 1 {
-                    output.push_str(",,,,");
-                }
-                output.push('\n');
-
-                // first control point row if any
-                if let Some(p) = point.c_prev {
-                    for _ in 0..id {
-                        output.push_str(",,,,");
-                    }
-                    output.push_str(&format!(",,{},{}", p.0, p.1));
-                    for _ in 0..timecurve_set.curves.len() - id - 1 {
-                        output.push_str(",,,,");
-                    }
-                    output.push('\n');
-                }
-
-                // second control point row if any
-                if let Some(p) = point.c_next {
-                    for _ in 0..id {
-                        output.push_str(",,,,");
-                    }
-                    output.push_str(&format!(",,{},{}", p.0, p.1));
-                    for _ in 0..timecurve_set.curves.len() - id - 1 {
-                        output.push_str(",,,,");
-                    }
-                    output.push('\n');
-                }
+                output.push_str(&format!(
+                    "{},{},{},{}\n",
+                    curve.name, point.label, point.pos.0, point.pos.1
+                ));
             }
         }
 
