@@ -3,7 +3,7 @@ use std::{path::PathBuf, process::exit};
 use clap::Parser;
 
 use timecurves_rs::{
-    exporters::{CSVExporter, Exporter, SVGExporter, TikzExporter},
+    exporters::{CSVExporter, Exporter, SVGExporter, TikzExporter, VegaLiteExporter},
     input::InputData,
     projection::ClassicalMDS,
     timecurve::Timecurve,
@@ -74,6 +74,7 @@ fn main() {
         "csv" => Box::new(CSVExporter::new()),
         "tikz" => Box::new(TikzExporter::new(cmd.tikz_drawing_size)),
         "svg" => Box::new(SVGExporter::new()),
+        "vegalite" => Box::new(VegaLiteExporter::new()),
         _ => {
             println!("Unknown output format.");
             exit(1);
