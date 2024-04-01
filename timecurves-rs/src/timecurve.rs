@@ -229,8 +229,9 @@ impl TimecurveSet {
 
             index += dataset.timelabels.len();
         }
-        timecurves.normalise();
+        //Must be in this order if we want the curve to be around the origin
         timecurves.orient();
+        timecurves.normalise();
         return Ok(timecurves);
     }
 
