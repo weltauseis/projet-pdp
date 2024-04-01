@@ -2,28 +2,31 @@ use std::process::exit;
 
 use clap::Parser;
 use edit_distance::edit_distance;
+use rayon::prelude::*;
 use serde_json::json;
 use std::io::Write;
+use std::sync::Mutex;
 use wikimatrixgen::{HistoryRes, Revision};
 
 // struct for automatic cli argument parsing with clap
 #[derive(Parser)]
 #[command(
-    about = "A simple tool to generate distance matrices for time curves visualisation from a wikipedia article.\n
-    NOTE : The wikimedia API only allows for 5000 requests / hour even with a valid token, so this tool only takes\n
-     into account the 50 last revisions of an article."
+    about = "A simple tool to generate distance matrices for time curves visualisation from a wikipedia article."
 )]
 struct Command {
-    /// name of the wikipedia page
+    /// name of the wikipedia page in URL, e.g. "Hideo_Kojima"
     page: String,
     /// output file
     output: String,
     /// language code of the wikipedia page : en, fr, de, ...
-    #[arg(short, default_value = "en")]
+    #[arg(short, long, default_value = "en", value_name = "CODE")]
     lang_code: String,
     /// Number of latest revisions to take into account
-    #[arg(short, default_value = "20")]
+    #[arg(short, long, default_value = "20")]
     number: usize,
+    /// If specified, include only revisions older than this revision
+    #[arg(short, long, value_name = "REVISION_ID")]
+    older_than: Option<String>,
 }
 
 // https://www.mediawiki.org/wiki/API:REST_API/Reference
@@ -36,9 +39,17 @@ fn main() {
 
     let mut revisions = Vec::new();
     let mut url = format!(
-        "https://{}.wikipedia.org/w/rest.php/v1/page/{}/history",
-        cmd.lang_code, cmd.page
+        "https://{}.wikipedia.org/w/rest.php/v1/page/{}/history{}",
+        cmd.lang_code,
+        cmd.page,
+        if let Some(older) = cmd.older_than {
+            format!("?older_than={}", older)
+        } else {
+            String::new()
+        }
     );
+
+    println!("url : {}", url);
 
     // STEP 1 : GET ALL THE REVISIONS
 
@@ -72,6 +83,16 @@ fn main() {
     revisions.truncate(cmd.number);
 
     println!("Done ! {} revisions found.", revisions.len());
+    println!(
+        "Fist revision is {} at {}.",
+        revisions.first().unwrap().id,
+        revisions.first().unwrap().timestamp
+    );
+    println!(
+        "Last revision is {} at {}.",
+        revisions.last().unwrap().id,
+        revisions.last().unwrap().timestamp
+    );
 
     // STEP 2 : FETCH THE WIKITEXT SOURCE CODE FOR EACH REVISION
     println!("Fetching wikitext source for all revisions...");
@@ -108,35 +129,55 @@ fn main() {
     let n = revisions.len();
     let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(n * n);
     matrix.resize(n, vec![0.0; n]);
+    let matrix = Mutex::new(matrix);
 
     println!("Computing distance for every possible pair...");
+
+    // compute distance in parallel, for half the matrix
     for i in 0..n {
-        for j in 0..n {
-            print_progress_bar(i * n + j, n * n);
+        print_progress_bar(i * n, n * n);
+
+        ((i + 1)..n).into_par_iter().for_each(|j| {
             let a = &wikitexts[i];
             let b = &wikitexts[j];
-            matrix[i][j] = edit_distance(a, b) as f64;
-        }
+            let distance = edit_distance(a, b) as f64;
+
+            let mut matrix = matrix.lock().unwrap();
+            matrix[i][j] = distance;
+            drop(matrix); // Unlock the mutex
+        });
     }
+    print_progress_bar(n * n, n * n);
     println!("");
 
-    // STEP 4 : WRITE THE JSON FILE
+    // mirror the computed half
+    for i in 0..n {
+        for j in 0..n {
+            if j < i {
+                let mut matrix = matrix.lock().unwrap();
+                matrix[i][j] = matrix[j][i];
+            }
+        }
+    }
 
+    // STEP 4 : WRITE THE JSON FILE
     let json_output = json!({
-        "distancematrix": matrix,
+        "distancematrix": *matrix.lock().unwrap(),
         "data": [{
-            "name": cmd.page,
+            "name": format!("{}.wikipedia.org/wiki/{}", cmd.lang_code, cmd.page),
             "timelabels": revisions.iter().map(|rev| rev.timestamp.clone()).collect::<Vec<String>>()
         }]
     });
 
-    let mut f = std::fs::File::create(cmd.output).unwrap();
+    let mut f = std::fs::File::create(&cmd.output).unwrap();
 
     write!(&mut f, "{}", json_output.to_string()).unwrap();
+
+    println!("Done ! File saved in '{}'.", &cmd.output);
 }
 
 fn print_progress_bar(i: usize, max: usize) {
-    let progress = (i + 1) as f64 / max as f64 * 100.0;
+    let progress = i as f64 / (max - 1) as f64 * 100.0;
     print!("\rProgress : [");
     for i in (0..100).step_by(3) {
         print!("{}", if i <= progress as i32 { "#" } else { "-" });
