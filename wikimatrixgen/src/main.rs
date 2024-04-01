@@ -19,11 +19,14 @@ struct Command {
     /// output file
     output: String,
     /// language code of the wikipedia page : en, fr, de, ...
-    #[arg(short, default_value = "en")]
+    #[arg(short, long, default_value = "en", value_name = "CODE")]
     lang_code: String,
     /// Number of latest revisions to take into account
-    #[arg(short, default_value = "20")]
+    #[arg(short, long, default_value = "20")]
     number: usize,
+    /// If specified, include only revisions older than this revision
+    #[arg(short, long, value_name = "REVISION_ID")]
+    older_than: Option<String>,
 }
 
 // https://www.mediawiki.org/wiki/API:REST_API/Reference
@@ -36,9 +39,17 @@ fn main() {
 
     let mut revisions = Vec::new();
     let mut url = format!(
-        "https://{}.wikipedia.org/w/rest.php/v1/page/{}/history",
-        cmd.lang_code, cmd.page
+        "https://{}.wikipedia.org/w/rest.php/v1/page/{}/history{}",
+        cmd.lang_code,
+        cmd.page,
+        if let Some(older) = cmd.older_than {
+            format!("?older_than={}", older)
+        } else {
+            String::new()
+        }
     );
+
+    println!("url : {}", url);
 
     // STEP 1 : GET ALL THE REVISIONS
 
