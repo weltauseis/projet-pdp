@@ -6,7 +6,7 @@ use timecurves_rs::{
     exporters::{CSVExporter, Exporter, SVGExporter, TikzExporter, VegaLiteExporter},
     input::InputData,
     projection::ClassicalMDS,
-    timecurve::Timecurve,
+    timecurve::TimecurveSet,
 };
 
 #[derive(Parser)]
@@ -50,7 +50,7 @@ fn main() {
         }
     }
 
-    let timecurves = match Timecurve::from_input_data(&input, ClassicalMDS::new()) {
+    let timecurves = match TimecurveSet::new(&input, ClassicalMDS::new()) {
         Ok(curves) => curves,
         Err(e) => {
             println!("Error while creating the timecurves :");

@@ -33,40 +33,29 @@ impl Timecurve {
     // TODO : implémenter la gestion d'erreurs pour cette fonction
     // par exemple valider l'input, il me semble qu'une matrice de distance vide ou non carrée
     // passe le parsing
-    pub fn from_input_data(
-        input_data: &InputData,
-        proj_algo: impl ProjectionAlgorithm,
-    ) -> Result<TimecurveSet, TimecurveError> {
-        let mut timecurves = TimecurveSet::new_empty();
-
-        let projected_points = proj_algo.project(&input_data.distancematrix);
+    fn new(
+        dataset: &crate::input::Dataset,
+        projected_points: &Vec<(f64, f64)>,
+    ) -> Result<Self, TimecurveError> {
         let mut i = 0;
-        for dataset in &input_data.data {
-            let mut timecurve = Timecurve::new_empty(&dataset.name);
-            for timelabel in &dataset.timelabels {
-                timecurve.points.push(TimecurvePoint {
-                    label: String::from(timelabel),
-                    t: label_to_time(&timelabel)?,
-                    pos: projected_points[i].clone(),
-                    // TODO : calcul des control points avec méthode variable comme l'algo
-                    // de projection
-                    c_prev: None,
-                    c_next: None,
-                });
+        let mut timecurve = Timecurve::new_empty(&dataset.name);
+        for timelabel in &dataset.timelabels {
+            timecurve.points.push(TimecurvePoint {
+                label: String::from(timelabel),
+                t: label_to_time(&timelabel)?,
+                pos: projected_points[i].clone(),
+                // TODO : calcul des control points avec méthode variable comme l'algo
+                // de projection
+                c_prev: None,
+                c_next: None,
+            });
 
-                i = i + 1;
-            }
-
-            timecurve.points.sort_by_key(|p| p.t);
-            timecurve.compute_control_points(0.3);
-            timecurves.curves.push(timecurve);
+            i = i + 1;
         }
-
-        timecurves.normalise();
-        return Ok(timecurves);
+        return Ok(timecurve);
     }
 
-    pub fn compute_control_points(&mut self, sigma: f64) {
+    fn compute_control_points(&mut self, sigma: f64) {
         for i in 1..self.points.len() - 1 {
             let current = &self.points[i];
             let previous = &self.points[i - 1];
@@ -181,6 +170,39 @@ impl Timecurve {
 
         return Ok(lerp(&d, &e, t));
     }
+
+    fn rotate_points(&mut self, angle: f64) {
+        for p in &mut self.points {
+            p.pos = rotate_point_around_origin(angle, p.pos);
+            if let Some(c) = p.c_prev {
+                p.c_prev = Some(rotate_point_around_origin(angle, c));
+            }
+            if let Some(c) = p.c_next {
+                p.c_next = Some(rotate_point_around_origin(angle, c));
+            }
+        }
+    }
+
+    fn normalise_points(&mut self, y_min: f64, x_min: f64, range: f64) {
+        // substract xmin or ymind to bring points into positive range ([0; +inf], [0; +inf])
+        // then divide by range to bring them into ([0; 1], [0; 1])
+        for p in &mut self.points {
+            p.pos.0 = (p.pos.0 - x_min) / range;
+            p.pos.1 = (p.pos.1 - y_min) / range;
+
+            if let Some(c) = p.c_prev {
+                let new_x = (c.0 - x_min) / range;
+                let new_y = (c.1 - y_min) / range;
+                p.c_prev = Some((new_x, new_y));
+            }
+
+            if let Some(c) = p.c_next {
+                let new_x = (c.0 - x_min) / range;
+                let new_y = (c.1 - y_min) / range;
+                p.c_next = Some((new_x, new_y));
+            }
+        }
+    }
 }
 
 pub struct TimecurveSet {
@@ -188,11 +210,31 @@ pub struct TimecurveSet {
 }
 
 impl TimecurveSet {
-    pub fn new_empty() -> Self {
-        TimecurveSet { curves: Vec::new() }
+    pub fn new(
+        input_data: &InputData,
+        proj_algo: impl ProjectionAlgorithm,
+    ) -> Result<Self, TimecurveError> {
+        let mut timecurves = TimecurveSet { curves: Vec::new() };
+        let projected_points = proj_algo.project(&input_data.distancematrix);
+        let mut index = 0; // index to keep track of where we are in the projected points
+        for dataset in &input_data.data {
+            let mut timecurve = Timecurve::new(
+                &dataset,
+                &projected_points[index..index + dataset.timelabels.len()].to_vec(),
+            )?;
+
+            timecurve.points.sort_by_key(|p| p.t);
+            timecurve.compute_control_points(0.3);
+            timecurves.curves.push(timecurve);
+
+            index += dataset.timelabels.len();
+        }
+        timecurves.normalise();
+        timecurves.orient();
+        return Ok(timecurves);
     }
 
-    pub fn normalise(&mut self) {
+    fn orient(&mut self) {
         // for multiple datasets, we align based on the first curve
         // like in the examples in the webpage
         let first_curve = match self.curves.get(0) {
@@ -213,17 +255,11 @@ impl TimecurveSet {
 
         // rotate all points around the origin by that angle
         for curve in &mut self.curves {
-            for p in &mut curve.points {
-                p.pos = rotate_point_around_origin(angle, p.pos);
-                if let Some(c) = p.c_prev {
-                    p.c_prev = Some(rotate_point_around_origin(angle, c));
-                }
-                if let Some(c) = p.c_next {
-                    p.c_next = Some(rotate_point_around_origin(angle, c));
-                }
-            }
+            curve.rotate_points(angle);
         }
+    }
 
+    fn normalise(&mut self) {
         // normalise in range [0, 1]
         let mut x_min = f64::INFINITY;
         let mut x_max = f64::NEG_INFINITY;
@@ -245,25 +281,8 @@ impl TimecurveSet {
 
         let range = max - min;
 
-        // substract xmin or ymind to bring points into positive range ([0; +inf], [0; +inf])
-        // then divide by range to bring them into ([0; 1], [0; 1])
         for curve in &mut self.curves {
-            for p in &mut curve.points {
-                p.pos.0 = (p.pos.0 - x_min) / range;
-                p.pos.1 = (p.pos.1 - y_min) / range;
-
-                if let Some(c) = p.c_prev {
-                    let new_x = (c.0 - x_min) / range;
-                    let new_y = (c.1 - y_min) / range;
-                    p.c_prev = Some((new_x, new_y));
-                }
-
-                if let Some(c) = p.c_next {
-                    let new_x = (c.0 - x_min) / range;
-                    let new_y = (c.1 - y_min) / range;
-                    p.c_next = Some((new_x, new_y));
-                }
-            }
+            curve.normalise_points(y_min, x_min, range);
         }
     }
 }
