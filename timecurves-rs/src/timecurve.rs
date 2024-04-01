@@ -35,7 +35,7 @@ impl Timecurve {
     // passe le parsing
     fn new(
         dataset: &crate::input::Dataset,
-        projected_points: &Vec<(f64, f64)>,
+        projected_points: &[(f64, f64)],
     ) -> Result<Self, TimecurveError> {
         let mut i = 0;
         let mut timecurve = Timecurve::new_empty(&dataset.name);
@@ -171,7 +171,7 @@ impl Timecurve {
         return Ok(lerp(&d, &e, t));
     }
 
-    fn rotate_points(&mut self, angle: f64) {
+    fn rotate_points_around_origin(&mut self, angle: f64) {
         for p in &mut self.points {
             p.pos = rotate_point_around_origin(angle, p.pos);
             if let Some(c) = p.c_prev {
@@ -216,11 +216,12 @@ impl TimecurveSet {
     ) -> Result<Self, TimecurveError> {
         let mut timecurves = TimecurveSet { curves: Vec::new() };
         let projected_points = proj_algo.project(&input_data.distancematrix);
+
         let mut index = 0; // index to keep track of where we are in the projected points
         for dataset in &input_data.data {
             let mut timecurve = Timecurve::new(
                 &dataset,
-                &projected_points[index..index + dataset.timelabels.len()].to_vec(),
+                &projected_points[index..index + dataset.timelabels.len()],
             )?;
 
             timecurve.points.sort_by_key(|p| p.t);
@@ -230,12 +231,12 @@ impl TimecurveSet {
             index += dataset.timelabels.len();
         }
         //Must be in this order if we want the curve to be around the origin
-        timecurves.orient();
+        timecurves.align();
         timecurves.normalise();
         return Ok(timecurves);
     }
 
-    fn orient(&mut self) {
+    fn align(&mut self) {
         // for multiple datasets, we align based on the first curve
         // like in the examples in the webpage
         let first_curve = match self.curves.get(0) {
@@ -256,7 +257,7 @@ impl TimecurveSet {
 
         // rotate all points around the origin by that angle
         for curve in &mut self.curves {
-            curve.rotate_points(angle);
+            curve.rotate_points_around_origin(angle);
         }
     }
 
