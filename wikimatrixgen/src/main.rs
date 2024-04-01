@@ -83,6 +83,16 @@ fn main() {
     revisions.truncate(cmd.number);
 
     println!("Done ! {} revisions found.", revisions.len());
+    println!(
+        "Fist revision is {} at {}.",
+        revisions.first().unwrap().id,
+        revisions.first().unwrap().timestamp
+    );
+    println!(
+        "Last revision is {} at {}.",
+        revisions.last().unwrap().id,
+        revisions.last().unwrap().timestamp
+    );
 
     // STEP 2 : FETCH THE WIKITEXT SOURCE CODE FOR EACH REVISION
     println!("Fetching wikitext source for all revisions...");
