@@ -12,11 +12,9 @@ pub struct TimecurveError {
 
 #[derive(Debug)]
 pub enum TimecurveErrorKind {
-    EmptyDistanceMatrix,
     NonSquareDistanceMatrix,
     EvaluatedOutsideRange,
     InvalidTimeLabel,
-    ProjectionIncoherence,
 }
 
 impl std::fmt::Display for TimecurveError {
@@ -26,10 +24,6 @@ impl std::fmt::Display for TimecurveError {
                 f,
                 "{} ({})",
                 match self.kind {
-                    TimecurveErrorKind::EmptyDistanceMatrix =>
-                        "Distance matrix is empty !",
-                    TimecurveErrorKind::ProjectionIncoherence =>
-                        "The projection has created an incoherent result !",
                     TimecurveErrorKind::NonSquareDistanceMatrix =>
                         "Distance matrix is not square !",
                     TimecurveErrorKind::EvaluatedOutsideRange =>

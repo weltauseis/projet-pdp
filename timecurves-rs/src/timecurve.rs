@@ -29,9 +29,10 @@ impl Timecurve {
     }
 }
 
-
 impl Timecurve {
-    
+    // TODO : implémenter la gestion d'erreurs pour cette fonction
+    // par exemple valider l'input, il me semble qu'une matrice de distance vide ou non carrée
+    // passe le parsing
     pub fn from_input_data(
         input_data: &InputData,
         proj_algo: impl ProjectionAlgorithm,
@@ -39,11 +40,6 @@ impl Timecurve {
         let mut timecurves = TimecurveSet::new_empty();
 
         let projected_points = proj_algo.project(&input_data.distancematrix);
-
-        if let Err(e) = proj_algo.dataset_global_test(&input_data.distancematrix) {
-            return Err(e);
-        }
-
         let mut i = 0;
         for dataset in &input_data.data {
             let mut timecurve = Timecurve::new_empty(&dataset.name);
