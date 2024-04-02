@@ -4,11 +4,11 @@ use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 
-/// `InputData` represents the parsed input file.
+/// Structure representing the parsed input file.
 ///
 /// It is composed of a distance matrix and a list of datasets. The structure of `Input`
 /// directly corresponds to the JSON structure of the input file, which allows for easy parsing
-/// with the `serde_json` library.
+/// thanks to the `serde_json` library.
 ///
 /// # Structure
 /// - `distance_matrix`: A two-dimensional array representing the distances between all points of all datasets.
@@ -20,16 +20,16 @@ pub struct InputData {
     pub data: Vec<Dataset>,
 }
 
-/// `Dataset` represents a single dataset from the input file.
+/// Structure representing a single dataset.
 ///
 /// Each `Dataset` is composed of a unique name and a list of timepoints.
 ///
 /// # Structure
 /// - `name`: A unique identifier for the dataset.
-/// - `timepoints`: A list of timepoints associated with the dataset. Each timepoint is date and time in string format.
+/// - `timepoints`: A list of timepoints associated with the dataset. Each timepoint should be either an ISO 8601 date and time string, or a simple number.
 ///
 ///  The structure of `Dataset` directly corresponds to the JSON structure of the input file, which allows for easy parsing
-/// with the `serde_json` library.
+/// thanks to the `serde_json` library.
 #[derive(Serialize, Deserialize)]
 pub struct Dataset {
     pub name: String,
