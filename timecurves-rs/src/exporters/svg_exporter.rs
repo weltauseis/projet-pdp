@@ -16,7 +16,7 @@ impl Exporter for SVGExporter {
 
         // svg opening tags
         output.push_str(&format!("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" width=\"100%\" height=\"100%\" viewBox=\"0 0 {} {}\">\n", 
-        1.0 + PADDING * 2.0,
+        1.0 + PADDING * 2.0, 
         1.0 + PADDING * 2.0));
 
         // draw the lines first so they are in the background
