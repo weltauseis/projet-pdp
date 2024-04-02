@@ -24,10 +24,11 @@ Arguments:
 
 Options:
   -f, --format <FORMAT>  Specifies the format of the output file
-  -v, --verbose          Print additional debug information to the standard output
   -s, --size <SIZE>      Specifies the size of the output graph, for formats that support it. Unit is cm for Tikz, px for Vega-lite
   -h, --help             Print help
 ```
+
+L'outil implémente des logs de débugage via la variable d'environnement `RUST_LOG`, voir https://docs.rs/env_logger/.
 
 ## timecurve-rs
 

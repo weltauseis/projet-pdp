@@ -1,7 +1,6 @@
-use std::{path::PathBuf, process::exit};
-
 use clap::Parser;
-
+use log::{debug, info};
+use std::{path::PathBuf, process::exit};
 use timecurves_rs::{
     exporters::{CSVExporter, Exporter, SVGExporter, TikzExporter, VegaLiteExporter},
     input::InputData,
@@ -20,9 +19,6 @@ struct CommandLine {
     /// Specifies the format of the output file.
     #[arg(short, long)]
     format: String,
-    /// Print additional debug information to the standard output
-    #[arg(short, long)]
-    verbose: bool,
     /// Specifies the size of the output graph, for formats that support it. Unit is cm for Tikz, px for Vega-lite
     #[arg(short, long)]
     size: Option<f64>,
@@ -30,6 +26,8 @@ struct CommandLine {
 
 fn main() {
     let cmd = CommandLine::parse();
+
+    env_logger::init();
 
     let filename = cmd.input.display().to_string();
 
@@ -42,12 +40,10 @@ fn main() {
         }
     };
 
-    if cmd.verbose {
-        println!("Input file <{}> read.", &cmd.input.display());
-        println!("Contains {} datasets :", input.data.len());
-        for dataset in &input.data {
-            println!("  - {}", dataset.name);
-        }
+    info!("Input file <{}> read.", &cmd.input.display());
+    info!("Contains {} datasets :", input.data.len());
+    for dataset in &input.data {
+        info!("  - {}", dataset.name);
     }
 
     let timecurves = match TimecurveSet::new(&input, ClassicalMDS::new()) {
@@ -59,14 +55,11 @@ fn main() {
         }
     };
 
-    if cmd.verbose {
-        println!("Curves for datasets calculated.");
-
-        for curve in &timecurves.curves {
-            println!("Curve for dataset '{}' :", curve.name);
-            for (i, p) in curve.points.iter().enumerate() {
-                println!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.0, p.pos.1);
-            }
+    info!("Curves for datasets calculated.");
+    for curve in &timecurves.curves {
+        debug!("Points for dataset '{}' :", curve.name);
+        for (i, p) in curve.points.iter().enumerate() {
+            debug!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.0, p.pos.1);
         }
     }
 
@@ -85,9 +78,7 @@ fn main() {
 
     match std::fs::write(&cmd.output, output) {
         Ok(_) => {
-            if cmd.verbose {
-                println!("Export to file <{}> successful.", &cmd.output.display());
-            }
+            info!("Export to file <{}> successful.", &cmd.output.display());
         }
         Err(e) => {
             println!(
