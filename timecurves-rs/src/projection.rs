@@ -2,19 +2,63 @@ use nalgebra::{DMatrix, DVector};
 
 use crate::error::{TimecurveError, TimecurveErrorKind};
 
+/// Trait representing a projection algorithm.
 pub trait ProjectionAlgorithm {
+    /// Projects points described by a distance matrix onto a 2D space.
+    ///
+    /// # Arguments
+    ///
+    /// * `distance_matrix` - A reference to a vector of rows representing the distance matrix.
+    ///
+    /// # Returns
+    ///
+    /// Returns a vector of tuples (x,y) representing the projected points.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `TimecurveError` if the projection fails.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use timecurves_rs::projection::ProjectionAlgorithm;
+    ///
+    /// let distance_matrix : Vec<Vec<f64>> = vec![
+    ///     vec![0.0, 1.0, 2.0],
+    ///     vec![1.0, 0.0, 3.0],
+    ///     vec![2.0, 3.0, 0.0]
+    /// ];
+    ///
+    /// let mds = ClassicalMDS::new();
+    ///
+    /// let result = mds.project(&distance_matrix);
+    ///
+    /// match result {
+    ///     Ok(points) => {
+    ///         for point in points {
+    ///             println!("({},{})", point.0, point.1);
+    ///         }
+    ///     }
+    ///     Err(e) => {
+    ///         println!("Error while computing the projection :");
+    ///         println!("{}", e);
+    ///     }
+    /// }
+    /// ```
     fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<(f64, f64)>, TimecurveError>;
 }
 
+/// Structure representing the classical Multidimensional Scaling (MDS) algorithm.
 pub struct ClassicalMDS;
 impl ClassicalMDS {
+    /// Creates a new instance of the classical MDS algorithm.
+    /// Takes no arguments.
     pub fn new() -> Self {
         return ClassicalMDS;
     }
 }
 
 impl ProjectionAlgorithm for ClassicalMDS {
-    // TODO : (FACILE) rajouter la crate log (https://github.com/rust-lang/log) pour remplacer les printf de débug
     fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<(f64, f64)>, TimecurveError> {
         let n = distance_matrix.len();
         let m = match distance_matrix.get(0) {
@@ -22,7 +66,7 @@ impl ProjectionAlgorithm for ClassicalMDS {
             None => {
                 return Err(TimecurveError::new(
                     TimecurveErrorKind::MalformedDistanceMatrix,
-                    Some("Matrix is empty."),
+                    Some("Matrix is empty"),
                 ))
             }
         };
@@ -30,7 +74,7 @@ impl ProjectionAlgorithm for ClassicalMDS {
         if n != m {
             return Err(TimecurveError::new(
                 TimecurveErrorKind::MalformedDistanceMatrix,
-                Some(&format!("Has {} rows != {} columns.", n, m)),
+                Some(&format!("Has {} rows != {} columns", n, m)),
             ));
         }
 
