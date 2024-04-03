@@ -158,6 +158,8 @@ impl ProjectionAlgorithm for ClassicalMDS {
 
 #[cfg(test)]
 mod tests {
+    use crate::input::InputData;
+
     use super::*;
 
     #[test]
@@ -188,5 +190,41 @@ mod tests {
         let dist_b_c =
             ((points[1].0 - points[2].0).powf(2.0) + (points[1].1 - points[2].1).powf(2.0)).sqrt();
         assert!(dist_b_c < 3.0 + epsilon && dist_b_c > 3.0 - epsilon);
+    }
+
+    #[test]
+    fn classical_mds_projects_the_right_number_of_points() {
+        let distance_matrix: Vec<Vec<f64>> = vec![
+            vec![0.0, 1.0, 2.0],
+            vec![1.0, 0.0, 3.0],
+            vec![2.0, 3.0, 0.0],
+        ];
+
+        let classical_mds = ClassicalMDS::new();
+
+        let points = classical_mds.project(&distance_matrix).unwrap();
+
+        assert_eq!(points.len(), 3);
+
+        let distance_matrix: Vec<Vec<f64>> = vec![
+            vec![0.0, 1.0, 2.0, 3.0],
+            vec![1.0, 0.0, 3.0, 4.0],
+            vec![2.0, 3.0, 0.0, 5.0],
+            vec![3.0, 4.0, 5.0, 0.0],
+        ];
+
+        let points = classical_mds.project(&distance_matrix).unwrap();
+
+        assert_eq!(points.len(), 4);
+
+        let input = InputData::from_filename(&format!(
+            "{}/tests/psfr100points.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+
+        let points = classical_mds.project(&input.distancematrix).unwrap();
+
+        assert_eq!(points.len(), 100);
     }
 }
