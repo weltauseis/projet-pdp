@@ -1,6 +1,7 @@
-use std::process::exit;
+use std::{process::exit, sync::Mutex};
 
 use clap::Parser;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde_json::json;
 use std::io::Write;
 use textdistance::str::levenshtein;
@@ -123,30 +124,42 @@ fn main() {
     println!("");
 
     // STEP 3 : COMPUTE LEVENSHTEIN DISTANCE BETWEEN EACH PAIR TO PRODUCE A DISTANCE MATRIX
-
-    let n = revisions.len();
-    let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(n * n);
-    matrix.resize(n, vec![0.0; n]);
-
     println!("Computing distance for every possible pair...");
 
+    // nb of rows / cols of matrix
+    let n = revisions.len();
+
     // Create a shared counter and a mutex to protect it
-    let mut counter = 0;
+    let counter = Mutex::new(0);
 
     // compute distance in parallel, for half the matrix
     print_progress_bar(0, n * (n - 1) / 2);
-    for i in 0..n {
-        ((i + 1)..n).for_each(|j| {
-            let a = &wikitexts[i];
-            let b = &wikitexts[j];
-            let distance = levenshtein(a, b);
+    let mut matrix = (0..n)
+        .into_iter()
+        .map(|i| /* for every row */ {
+            (0..n)
+                .into_par_iter()
+                .map(|j| /* for every element of the row */ {
+                    if j <= i {
+                        0.0
+                    } else {
+                        let a = &wikitexts[i];
+                        let b = &wikitexts[j];
 
-            matrix[i][j] = distance as f64;
+                        let dist = levenshtein(a, b) as f64;
 
-            counter += 1;
-            print_progress_bar(counter - 1, n * (n - 1) / 2);
-        });
-    }
+                        {
+                            let mut c = counter.lock().unwrap();
+                            *c += 1;
+                            print_progress_bar(*c - 1, n * (n - 1) / 2);
+                        }
+
+                        dist
+                    }
+                })
+                .collect::<Vec<f64>>()
+        })
+        .collect::<Vec<Vec<f64>>>();
     println!("");
 
     // mirror the computed half
