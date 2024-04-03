@@ -21,7 +21,7 @@ pub trait ProjectionAlgorithm {
     /// # Example
     ///
     /// ```
-    /// use timecurves_rs::projection::ProjectionAlgorithm;
+    /// use timecurves_rs::projection::{ProjectionAlgorithm, ClassicalMDS};
     ///
     /// let distance_matrix : Vec<Vec<f64>> = vec![
     ///     vec![0.0, 1.0, 2.0],
@@ -153,5 +153,40 @@ impl ProjectionAlgorithm for ClassicalMDS {
         }
 
         return Ok(points);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classical_mds_preserves_distances() {
+        let distance_matrix: Vec<Vec<f64>> = vec![
+            vec![0.0, 1.0, 2.0],
+            vec![1.0, 0.0, 3.0],
+            vec![2.0, 3.0, 0.0],
+        ];
+
+        let classical_mds = ClassicalMDS::new();
+
+        let points = classical_mds.project(&distance_matrix).unwrap();
+
+        let epsilon: f64 = 10e-3;
+
+        // dist a <-> b
+        let dist_a_b =
+            ((points[0].0 - points[1].0).powf(2.0) + (points[0].1 - points[1].1).powf(2.0)).sqrt();
+        assert!(dist_a_b < 1.0 + epsilon && dist_a_b > 1.0 - epsilon);
+
+        // dist a <-> c
+        let dist_a_c =
+            ((points[0].0 - points[2].0).powf(2.0) + (points[0].1 - points[2].1).powf(2.0)).sqrt();
+        assert!(dist_a_c < 2.0 + epsilon && dist_a_c > 2.0 - epsilon);
+
+        // dist b <-> c
+        let dist_b_c =
+            ((points[1].0 - points[2].0).powf(2.0) + (points[1].1 - points[2].1).powf(2.0)).sqrt();
+        assert!(dist_b_c < 3.0 + epsilon && dist_b_c > 3.0 - epsilon);
     }
 }
