@@ -1,11 +1,9 @@
 use std::process::exit;
 
 use clap::Parser;
-use edit_distance::edit_distance;
-use rayon::prelude::*;
 use serde_json::json;
 use std::io::Write;
-use std::sync::Mutex;
+use textdistance::str::levenshtein;
 use wikimatrixgen::{HistoryRes, Revision};
 
 // struct for automatic cli argument parsing with clap
@@ -129,32 +127,32 @@ fn main() {
     let n = revisions.len();
     let mut matrix: Vec<Vec<f64>> = Vec::with_capacity(n * n);
     matrix.resize(n, vec![0.0; n]);
-    let matrix = Mutex::new(matrix);
 
     println!("Computing distance for every possible pair...");
 
-    // compute distance in parallel, for half the matrix
-    for i in 0..n {
-        print_progress_bar(i * n, n * n);
+    // Create a shared counter and a mutex to protect it
+    let mut counter = 0;
 
-        ((i + 1)..n).into_par_iter().for_each(|j| {
+    // compute distance in parallel, for half the matrix
+    print_progress_bar(0, n * (n - 1) / 2);
+    for i in 0..n {
+        ((i + 1)..n).for_each(|j| {
             let a = &wikitexts[i];
             let b = &wikitexts[j];
-            let distance = edit_distance(a, b) as f64;
+            let distance = levenshtein(a, b);
 
-            let mut matrix = matrix.lock().unwrap();
-            matrix[i][j] = distance;
-            drop(matrix); // Unlock the mutex
+            matrix[i][j] = distance as f64;
+
+            counter += 1;
+            print_progress_bar(counter - 1, n * (n - 1) / 2);
         });
     }
-    print_progress_bar(n * n, n * n);
     println!("");
 
     // mirror the computed half
     for i in 0..n {
         for j in 0..n {
             if j < i {
-                let mut matrix = matrix.lock().unwrap();
                 matrix[i][j] = matrix[j][i];
             }
         }
@@ -162,7 +160,7 @@ fn main() {
 
     // STEP 4 : WRITE THE JSON FILE
     let json_output = json!({
-        "distancematrix": *matrix.lock().unwrap(),
+        "distancematrix": matrix,
         "data": [{
             "name": format!("{}.wikipedia.org/wiki/{}", cmd.lang_code, cmd.page),
             "timelabels": revisions.iter().map(|rev| rev.timestamp.clone()).collect::<Vec<String>>()
