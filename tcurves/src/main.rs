@@ -22,6 +22,9 @@ struct CommandLine {
     /// Specifies the size of the output graph, for formats that support it. Unit is cm for Tikz, px for Vega-lite
     #[arg(short, long)]
     size: Option<f64>,
+    /// Specifies the thickness of the lines in the output graph, for formats that support it.
+    #[arg(long, default_value = "1.0")]
+    thickness: f64,
 }
 
 fn main() {
@@ -65,8 +68,8 @@ fn main() {
 
     let exporter: Box<dyn Exporter> = match cmd.format.to_lowercase().as_str() {
         "csv" => Box::new(CSVExporter::new()),
-        "tikz" => Box::new(TikzExporter::new(cmd.size.unwrap_or(10.0))),
-        "svg" => Box::new(SVGExporter::new()),
+        "tikz" => Box::new(TikzExporter::new(cmd.size.unwrap_or(10.0), cmd.thickness)),
+        "svg" => Box::new(SVGExporter::new(cmd.thickness)),
         "vegalite" => Box::new(VegaLiteExporter::new(cmd.size.unwrap_or(400.0) as u64)),
         _ => {
             println!("Unknown output format.");
