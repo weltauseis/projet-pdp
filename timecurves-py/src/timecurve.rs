@@ -1,8 +1,5 @@
 use pyo3::{exceptions::PyValueError, prelude::*};
-use timecurves_rs::{
-    projection::ClassicalMDS,
-    timecurve::{Timecurve, TimecurveSet},
-};
+use timecurves_rs::{projection::ClassicalMDS, timecurve::TimecurveSet};
 
 use crate::input::PyInputData;
 
@@ -26,7 +23,7 @@ impl PyTimecurves {
 }
 #[pyfunction]
 pub fn timecurves_from_data(input_data: &PyInputData) -> PyResult<PyTimecurves> {
-    let a = Timecurve::from_input_data(&input_data.inputdata, ClassicalMDS::new());
+    let a = TimecurveSet::new(&input_data.inputdata, ClassicalMDS::new());
     match a {
         Ok(v) => Ok(PyTimecurves { timecurves: v }),
         Err(e) => Err(PyValueError::new_err(e.to_string())),
