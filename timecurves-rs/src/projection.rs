@@ -1,21 +1,82 @@
 use nalgebra::{DMatrix, DVector};
 
+use crate::error::{TimecurveError, TimecurveErrorKind};
+
+/// Trait representing a projection algorithm.
 pub trait ProjectionAlgorithm {
-    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<(f64, f64)>;
+    /// Projects points described by a distance matrix onto a 2D space.
+    ///
+    /// # Arguments
+    ///
+    /// * `distance_matrix` - A reference to a vector of rows representing the distance matrix.
+    ///
+    /// # Returns
+    ///
+    /// Returns a vector of tuples (x,y) representing the projected points.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `TimecurveError` if the projection fails.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use timecurves_rs::projection::{ProjectionAlgorithm, ClassicalMDS};
+    ///
+    /// let distance_matrix : Vec<Vec<f64>> = vec![
+    ///     vec![0.0, 1.0, 2.0],
+    ///     vec![1.0, 0.0, 3.0],
+    ///     vec![2.0, 3.0, 0.0]
+    /// ];
+    ///
+    /// let mds = ClassicalMDS::new();
+    ///
+    /// let result = mds.project(&distance_matrix);
+    ///
+    /// match result {
+    ///     Ok(points) => {
+    ///         for point in points {
+    ///             println!("({},{})", point.0, point.1);
+    ///         }
+    ///     }
+    ///     Err(e) => {
+    ///         println!("Error while computing the projection :");
+    ///         println!("{}", e);
+    ///     }
+    /// }
+    /// ```
+    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<(f64, f64)>, TimecurveError>;
 }
 
+/// Structure representing the classical Multidimensional Scaling (MDS) algorithm.
 pub struct ClassicalMDS;
 impl ClassicalMDS {
+    /// Creates a new instance of the classical MDS algorithm.
+    /// Takes no arguments.
     pub fn new() -> Self {
         return ClassicalMDS;
     }
 }
-// TODO : (FACILE) rajouter la crate log (https://github.com/rust-lang/log) pour remplacer les printf de débug
-// TODO : implémenter la gestion d'erreur pour cette fonction
-//        par exemple, une matrice non carrée ou un nombre de points différent de la taille de la matrice
+
 impl ProjectionAlgorithm for ClassicalMDS {
-    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Vec<(f64, f64)> {
+    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<(f64, f64)>, TimecurveError> {
         let n = distance_matrix.len();
+        let m = match distance_matrix.get(0) {
+            Some(row) => row.len(),
+            None => {
+                return Err(TimecurveError::new(
+                    TimecurveErrorKind::MalformedDistanceMatrix,
+                    Some("Matrix is empty"),
+                ))
+            }
+        };
+
+        if n != m {
+            return Err(TimecurveError::new(
+                TimecurveErrorKind::MalformedDistanceMatrix,
+                Some(&format!("Has {} rows != {} columns", n, m)),
+            ));
+        }
 
         let d = DMatrix::from_fn(n, n, |i, j| distance_matrix[i][j]);
 
@@ -35,12 +96,9 @@ impl ProjectionAlgorithm for ClassicalMDS {
 
         let h = identity - (1.0 / n as f64) * matrix_of_ones;
 
-        //println!("H = {:.2}", h); // correct, comparer avec C3 dans https://en.wikipedia.org/wiki/Centering_matrix 🤓
-
         // TODO : hardcoder h (la matrice de centrage) puisqu'on ne projette les points qu'en 2D
 
         // A is the matrix of negative square distances divided by two
-
         let a = DMatrix::from_fn(n, n, |i, j| {
             let v = &d[(i, j)];
             return -0.5 * v * v;
@@ -48,19 +106,14 @@ impl ProjectionAlgorithm for ClassicalMDS {
 
         let b = &h * a * h;
 
-        //println!("B = {:.2}", &b);
-
         // Determine the m largest eigenvalues λ 1 , λ 2 , . . . , λ m
         // and corresponding eigenvectors e 1 , e 2 , . . . , e m of B
         // (where m is the number of dimensions desired for the output)
-
         let decomposition = b.symmetric_eigen();
+        // une colonne <-> un vecteur propre
+        // ligne n <-> valeur propre du vecteur colonne n de la matrice au dessus
 
         // create couples of eigenvectors / eigenvalues
-
-        //println!("eigenvectors : {:.2}", &decomposition.eigenvectors); // une colonne <-> un vecteur propre
-        //println!("eigenvalues : {:.2}", &decomposition.eigenvalues); // ligne n <-> valeur propre du vecteur colonne n de la matrice au dessus
-
         let mut couples: Vec<(f64, DVector<f64>)> = Vec::new();
 
         for i in 0..decomposition.eigenvalues.nrows() {
@@ -79,27 +132,19 @@ impl ProjectionAlgorithm for ClassicalMDS {
         // matrice diagonale des m plus grandes valeurs propres
         let mut l_m = DMatrix::from_fn(2, 2, |i, j| if i == j { couples[i].0 } else { 0.0 });
 
-        //println!("Lm = {:.2}", &l_m);
-
         // matrice des m plus grands vecteurs propres
-
         let couples_unzipped: (Vec<f64>, Vec<DVector<f64>>) = couples.into_iter().unzip();
 
         let e_m = DMatrix::from_columns(couples_unzipped.1.as_slice());
 
-        //println!("Em = {:.2}", &e_m);
-
         // X = Em * Lm^.5 fournit une solution du problème posé.
         // Les coordonnées des n points dans l'espace de dimension m sont les lignes de la matrice solution X
         // (matrice à n lignes et m colonnes).
-
         l_m.apply(|x| {
             *x = x.sqrt();
         });
 
         let x_mat = e_m * l_m;
-
-        //println!("X = {:.2}", &x_mat);
 
         let mut points: Vec<(f64, f64)> = Vec::new();
         for i in 0..x_mat.nrows() {
@@ -107,6 +152,79 @@ impl ProjectionAlgorithm for ClassicalMDS {
             points.push((x_mat[(i, 0)], x_mat[(i, 1)]));
         }
 
-        return points;
+        return Ok(points);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::input::InputData;
+
+    use super::*;
+
+    #[test]
+    fn classical_mds_preserves_distances() {
+        let distance_matrix: Vec<Vec<f64>> = vec![
+            vec![0.0, 1.0, 2.0],
+            vec![1.0, 0.0, 3.0],
+            vec![2.0, 3.0, 0.0],
+        ];
+
+        let classical_mds = ClassicalMDS::new();
+
+        let points = classical_mds.project(&distance_matrix).unwrap();
+
+        let epsilon: f64 = 10e-3;
+
+        // dist a <-> b
+        let dist_a_b =
+            ((points[0].0 - points[1].0).powf(2.0) + (points[0].1 - points[1].1).powf(2.0)).sqrt();
+        assert!(dist_a_b < 1.0 + epsilon && dist_a_b > 1.0 - epsilon);
+
+        // dist a <-> c
+        let dist_a_c =
+            ((points[0].0 - points[2].0).powf(2.0) + (points[0].1 - points[2].1).powf(2.0)).sqrt();
+        assert!(dist_a_c < 2.0 + epsilon && dist_a_c > 2.0 - epsilon);
+
+        // dist b <-> c
+        let dist_b_c =
+            ((points[1].0 - points[2].0).powf(2.0) + (points[1].1 - points[2].1).powf(2.0)).sqrt();
+        assert!(dist_b_c < 3.0 + epsilon && dist_b_c > 3.0 - epsilon);
+    }
+
+    #[test]
+    fn classical_mds_projects_the_right_number_of_points() {
+        let distance_matrix: Vec<Vec<f64>> = vec![
+            vec![0.0, 1.0, 2.0],
+            vec![1.0, 0.0, 3.0],
+            vec![2.0, 3.0, 0.0],
+        ];
+
+        let classical_mds = ClassicalMDS::new();
+
+        let points = classical_mds.project(&distance_matrix).unwrap();
+
+        assert_eq!(points.len(), 3);
+
+        let distance_matrix: Vec<Vec<f64>> = vec![
+            vec![0.0, 1.0, 2.0, 3.0],
+            vec![1.0, 0.0, 3.0, 4.0],
+            vec![2.0, 3.0, 0.0, 5.0],
+            vec![3.0, 4.0, 5.0, 0.0],
+        ];
+
+        let points = classical_mds.project(&distance_matrix).unwrap();
+
+        assert_eq!(points.len(), 4);
+
+        let input = InputData::from_filename(&format!(
+            "{}/tests/psfr100points.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+
+        let points = classical_mds.project(&input.distancematrix).unwrap();
+
+        assert_eq!(points.len(), 100);
     }
 }

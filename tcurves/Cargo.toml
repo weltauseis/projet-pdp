@@ -8,3 +8,5 @@ edition = "2021"
 [dependencies]
 timecurves_rs = {path = "../timecurves-rs"}
 clap = { version = "4.4.18", features = ["derive"] }
+env_logger = "0.11.3"
+log = "0.4.21"

@@ -1,71 +1,76 @@
 use crate::{
     error::{TimecurveError, TimecurveErrorKind},
-    input::InputData,
+    input::{Dataset, InputData},
     projection::ProjectionAlgorithm,
 };
 
+/// Represents a point on a timecurve.
 pub struct TimecurvePoint {
+    /// The string label associated with the point.
     pub label: String,
-    // t <-> timelabel sous forme de nombre pour le format de fichier input par défaut
+    /// The unix time value of the point. Is equivalent to the label, but in numerical form.
     pub t: i64,
+    /// The (x, y) position of the point in 2D space.
     pub pos: (f64, f64),
-    // le point de contrôle en commun avec le point precedent
+    /// The control point in the direction of the the previous point on the curve.
     pub c_prev: Option<(f64, f64)>,
-    // le point de contrôle en commun avec le point suivant
+    /// The control point in the direction of the next point on the curve.
     pub c_next: Option<(f64, f64)>,
 }
+
+/// Represents a single timecurve.
 pub struct Timecurve {
-    pub points: Vec<TimecurvePoint>,
+    /// The name of the timecurve.
     pub name: String,
+    /// A list holding the points that make up the timecurve.
+    /// If the curve is created from a projection algorithm, the points are sorted chronologically.
+    pub points: Vec<TimecurvePoint>,
 }
 
 impl Timecurve {
-    pub fn new_empty(name: &str) -> Self {
+    /// Creates a new empty timecurve with the given name.
+    ///
+    /// # Arguments
+    ///
+    /// * `name` - The name of the timecurve.
+    ///
+    /// # Returns
+    ///
+    /// A new `Timecurve` instance.
+    fn new_empty(name: &str) -> Self {
         Timecurve {
             points: Vec::new(),
             name: String::from(name),
         }
     }
-}
 
-impl Timecurve {
-    // TODO : implémenter la gestion d'erreurs pour cette fonction
-    // par exemple valider l'input, il me semble qu'une matrice de distance vide ou non carrée
-    // passe le parsing
-    pub fn from_input_data(
-        input_data: &InputData,
-        proj_algo: impl ProjectionAlgorithm,
-    ) -> Result<TimecurveSet, TimecurveError> {
-        let mut timecurves = TimecurveSet::new_empty();
-
-        let projected_points = proj_algo.project(&input_data.distancematrix);
-        let mut i = 0;
-        for dataset in &input_data.data {
-            let mut timecurve = Timecurve::new_empty(&dataset.name);
-            for timelabel in &dataset.timelabels {
-                timecurve.points.push(TimecurvePoint {
-                    label: String::from(timelabel),
-                    t: label_to_time(&timelabel)?,
-                    pos: projected_points[i].clone(),
-                    // TODO : calcul des control points avec méthode variable comme l'algo
-                    // de projection
-                    c_prev: None,
-                    c_next: None,
-                });
-
-                i = i + 1;
-            }
-
-            timecurve.points.sort_by_key(|p| p.t);
-            timecurve.compute_control_points(0.3);
-            timecurves.curves.push(timecurve);
+    /// Creates a new timecurve from a dataset and a list of points.
+    ///
+    /// # Arguments
+    ///
+    /// * `dataset` - The dataset from which the timecurve is created.
+    /// * `projected_points` - A slice of (x, y) points that make up the timecurve.
+    ///   The length should be equal to the number of timelabels in the dataset.
+    ///
+    /// # Returns
+    ///
+    /// A new `Timecurve` instance.
+    fn new(dataset: &Dataset, projected_points: &[(f64, f64)]) -> Result<Self, TimecurveError> {
+        let mut timecurve = Timecurve::new_empty(&dataset.name);
+        for (i, timelabel) in dataset.timelabels.iter().enumerate() {
+            timecurve.points.push(TimecurvePoint {
+                label: String::from(timelabel),
+                t: label_to_time(&timelabel)?,
+                pos: projected_points[i],
+                c_prev: None,
+                c_next: None,
+            });
         }
 
-        timecurves.normalise();
-        return Ok(timecurves);
+        return Ok(timecurve);
     }
 
-    pub fn compute_control_points(&mut self, sigma: f64) {
+    fn compute_control_points(&mut self, sigma: f64) {
         for i in 1..self.points.len() - 1 {
             let current = &self.points[i];
             let previous = &self.points[i - 1];
@@ -180,18 +185,75 @@ impl Timecurve {
 
         return Ok(lerp(&d, &e, t));
     }
+
+    fn rotate_points_around_origin(&mut self, angle: f64) {
+        for p in &mut self.points {
+            p.pos = rotate_point_around_origin(angle, p.pos);
+            if let Some(c) = p.c_prev {
+                p.c_prev = Some(rotate_point_around_origin(angle, c));
+            }
+            if let Some(c) = p.c_next {
+                p.c_next = Some(rotate_point_around_origin(angle, c));
+            }
+        }
+    }
+
+    fn normalise_points(&mut self, y_min: f64, x_min: f64, range: f64) {
+        // substract xmin or ymind to bring points into positive range ([0; +inf], [0; +inf])
+        // then divide by range to bring them into ([0; 1], [0; 1])
+        for p in &mut self.points {
+            p.pos.0 = (p.pos.0 - x_min) / range;
+            p.pos.1 = (p.pos.1 - y_min) / range;
+
+            if let Some(c) = p.c_prev {
+                let new_x = (c.0 - x_min) / range;
+                let new_y = (c.1 - y_min) / range;
+                p.c_prev = Some((new_x, new_y));
+            }
+
+            if let Some(c) = p.c_next {
+                let new_x = (c.0 - x_min) / range;
+                let new_y = (c.1 - y_min) / range;
+                p.c_next = Some((new_x, new_y));
+            }
+        }
+    }
 }
 
+/// Represents a set of one or more timecurves sharing the same 2D space.
 pub struct TimecurveSet {
+    /// A vector containing all the timecurves in the set.
     pub curves: Vec<Timecurve>,
 }
 
 impl TimecurveSet {
-    pub fn new_empty() -> Self {
-        TimecurveSet { curves: Vec::new() }
+    pub fn new(
+        input_data: &InputData,
+        proj_algo: impl ProjectionAlgorithm,
+    ) -> Result<Self, TimecurveError> {
+        let mut timecurves = TimecurveSet { curves: Vec::new() };
+        let projected_points = proj_algo.project(&input_data.distancematrix)?;
+
+        let mut index = 0; // index to keep track of where we are in the projected points
+        for dataset in &input_data.data {
+            let mut timecurve = Timecurve::new(
+                &dataset,
+                &projected_points[index..index + dataset.timelabels.len()],
+            )?;
+
+            timecurve.points.sort_by_key(|p| p.t);
+            timecurve.compute_control_points(0.3);
+            timecurves.curves.push(timecurve);
+
+            index += dataset.timelabels.len();
+        }
+        //Must be in this order if we want the curve to be around the origin
+        timecurves.align();
+        timecurves.normalise();
+        return Ok(timecurves);
     }
 
-    pub fn normalise(&mut self) {
+    fn align(&mut self) {
         // for multiple datasets, we align based on the first curve
         // like in the examples in the webpage
         let first_curve = match self.curves.get(0) {
@@ -212,17 +274,11 @@ impl TimecurveSet {
 
         // rotate all points around the origin by that angle
         for curve in &mut self.curves {
-            for p in &mut curve.points {
-                p.pos = rotate_point_around_origin(angle, p.pos);
-                if let Some(c) = p.c_prev {
-                    p.c_prev = Some(rotate_point_around_origin(angle, c));
-                }
-                if let Some(c) = p.c_next {
-                    p.c_next = Some(rotate_point_around_origin(angle, c));
-                }
-            }
+            curve.rotate_points_around_origin(angle);
         }
+    }
 
+    fn normalise(&mut self) {
         // normalise in range [0, 1]
         let mut x_min = f64::INFINITY;
         let mut x_max = f64::NEG_INFINITY;
@@ -244,33 +300,37 @@ impl TimecurveSet {
 
         let range = max - min;
 
-        // substract xmin or ymind to bring points into positive range ([0; +inf], [0; +inf])
-        // then divide by range to bring them into ([0; 1], [0; 1])
         for curve in &mut self.curves {
-            for p in &mut curve.points {
-                p.pos.0 = (p.pos.0 - x_min) / range;
-                p.pos.1 = (p.pos.1 - y_min) / range;
-
-                if let Some(c) = p.c_prev {
-                    let new_x = (c.0 - x_min) / range;
-                    let new_y = (c.1 - y_min) / range;
-                    p.c_prev = Some((new_x, new_y));
-                }
-
-                if let Some(c) = p.c_next {
-                    let new_x = (c.0 - x_min) / range;
-                    let new_y = (c.1 - y_min) / range;
-                    p.c_next = Some((new_x, new_y));
-                }
-            }
+            curve.normalise_points(y_min, x_min, range);
         }
     }
 }
 
+/// Utility linear interpolation function between two points.
+///
+/// # Arguments
+///
+/// * `a` - The starting point.
+/// * `b` - The end point.
+/// * `t` - The interpolation factor.
+///
+/// # Returns
+///
+/// The new interpolated point.
 fn lerp(a: &(f64, f64), b: &(f64, f64), t: f64) -> (f64, f64) {
     ((1.0 - t) * a.0 + t * b.0, (1.0 - t) * a.1 + t * b.1)
 }
 
+/// Utility function that calculates the new position of a point after a rotation around the origin.
+///
+/// # Arguments
+///
+/// * `angle` - The angle of rotation, in radians.
+/// * `p` - The point before transformation.
+///
+/// # Returns
+///
+/// The transformed point.
 fn rotate_point_around_origin(angle: f64, p: (f64, f64)) -> (f64, f64) {
     let x = p.0;
     let y = p.1;
@@ -297,7 +357,7 @@ fn label_to_time(label: &str) -> Result<i64, TimecurveError> {
         return Ok(t.and_utc().timestamp());
     }
 
-    // label is a raw time number
+    // label is a raw number
     let time = label.parse::<i64>();
     if let Ok(t) = time {
         return Ok(t);
@@ -309,12 +369,3 @@ fn label_to_time(label: &str) -> Result<i64, TimecurveError> {
         Some(&format!("Label : \"{}\"", label)),
     ));
 }
-
-// TODO : implémenter une méthode de Timecurve pour normaliser les points
-// par exemple centrer les points sur (0,0) et faire en sorte qu'ils aillent de -1 à 1 ou je sais pas
-// parce que pour l'instant la position des points dépend de la matrice de distance,
-// c.a.d que si les distance sont genre 0.3, 0.6, etc la courbe finale sera toute petite
-// alors que si les distances sont 300, 567, etc la courbe sera énorme
-
-// TODO : implémenter une méthode de timecurve qui tourne les points autour de l'origine en fonction du temps t
-// pour que le sens de lecture s'aligne sur gauche -> droite

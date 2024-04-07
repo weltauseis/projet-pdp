@@ -1,41 +1,59 @@
-# Time Curves
+# Projet de programmation Timecurves
 
-## Organisation du projet :
+Contenu du dépôt :
 
-Oubliez pas qu'on devra rendre ce repo au chercheur(s) qui nous corrigeront donc pas de commits bizarres et un workflow un minimum sérieux svp 🙏🙏🙏
+## `tcurves`
 
-🚨 Commitez absolument du code formatté (`shift + alt + f` sur vscode) pour éviter de devoir faire des commits de formatage qui polluent le repo 🚨
+Programme en ligne de commande qui permet de générer des timecurves à partir de fichiers de matrices de distances. Pour un exemple de fichier, voir https://aviz.fr/~bbach/timecurves/.
 
-## Trucs à faire :
+Les formats supportés pour l'instant sont :
 
-### Documentation :
+- csv
+- svg
+- tikz
+- vega-lite
 
-Rajouter de la documentation pour TOUS les types et TOUTES les fonctions auxquelles les utilisateurs vont être exposés, comme j'ai commencé à faire dans input.rs :
-```rust
-/// Creates a new `InputData` object from a JSON string.
-///
-/// # Arguments
-///
-/// * `string` - A JSON string representing the input data.
-///
-/// # Returns
-///
-/// Returns a `Result` containing the parsed `InputData` object or an error if parsing fails.
-pub fn from_str(string: &str) -> Result<Self, Box<dyn Error>> {
-    let input: Self = serde_json::from_str(string)?;
-    Ok(input)
-}
+Pour l'utilisation, se référer à l'option `--help` :
+
 ```
-Ce genre de commentaires sont gérés par cargo et permettent de génerer une documentation gratuitement avec `cargo doc --no-deps`.
+Usage: tcurves [OPTIONS] --format <FORMAT> <INPUT> <OUTPUT>
 
-### Amélioration du code :
+Arguments:
+  <INPUT>   Specifies the input file for generating the curves. The file must be in the correct JSON format, as per the provided template
+  <OUTPUT>  Specifies the output file for the generated curves. The file will be in the format specified by the --format option
 
-Il y a plein de TODO dans le code, il suffit de chercher avec ctrl + shift + f, ça vaut le coup de regarder.
+Options:
+  -f, --format <FORMAT>  Specifies the format of the output file
+  -s, --size <SIZE>      Specifies the size of the output graph, for formats that support it. Unit is cm for Tikz, px for Vega-lite
+  -h, --help             Print help
+```
 
-### Binding python :
+L'outil implémente des logs de débugage via la variable d'environnement `RUST_LOG`, voir https://docs.rs/env_logger/.
 
-Faire une branche et commencer à rendre la biblio utilisable en python, par exemple en convertissant le CLI en python.
+## timecurve-rs
 
-### Tests :
+Bibliothèque rust contenant tout le code de projection et de manipulation des timecurves. Le programme `tcurve` se contente principalement de faire des appels à cette bibliothèque.
 
-Faire des tests pour les fonctions de la bibliothèque, je sais que vous adorez ça les gars en génie log.
+La documentation n'est pas encore disponible.
+
+## wikimatrixgen
+
+Programme en ligne de commande permettant de générer des fichiers de matrices de distance à partir d'articles wikipedia.
+
+Se référer à l'option `--help` :
+
+```
+A simple tool to generate distance matrices for time curves visualisation from a wikipedia article.
+
+Usage: wikimatrixgen [OPTIONS] <PAGE> <OUTPUT>
+
+Arguments:
+  <PAGE>    name of the wikipedia page in URL, e.g. "Hideo_Kojima"
+  <OUTPUT>  output file
+
+Options:
+  -l, --lang-code <CODE>          language code of the wikipedia page : en, fr, de, ... [default: en]
+  -n, --number <NUMBER>           Number of latest revisions to take into account [default: 20]
+  -o, --older-than <REVISION_ID>  If specified, include only revisions older than this revision
+  -h, --help                      Print help
+```

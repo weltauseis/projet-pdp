@@ -12,7 +12,7 @@ pub struct TimecurveError {
 
 #[derive(Debug)]
 pub enum TimecurveErrorKind {
-    NonSquareDistanceMatrix,
+    MalformedDistanceMatrix,
     EvaluatedOutsideRange,
     InvalidTimeLabel,
 }
@@ -24,8 +24,7 @@ impl std::fmt::Display for TimecurveError {
                 f,
                 "{} ({})",
                 match self.kind {
-                    TimecurveErrorKind::NonSquareDistanceMatrix =>
-                        "Distance matrix is not square !",
+                    TimecurveErrorKind::MalformedDistanceMatrix => "Distance matrix is malformed !",
                     TimecurveErrorKind::EvaluatedOutsideRange =>
                         "Tried to evaluate timecurve outside its range !",
                     TimecurveErrorKind::InvalidTimeLabel => "Timelabel is invalid !",
