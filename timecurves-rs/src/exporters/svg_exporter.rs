@@ -55,13 +55,14 @@ impl Exporter for SVGExporter {
                 let color = super::curve_color_lerp(curve_id, u);
 
                 output.push_str(&format!(
-                    "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"rgb({},{},{})\" />\n",
+                    "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"rgb({},{},{})\" data-timelabel=\"{}\"/>\n",
                     point.pos.0 + PADDING,
                     1.0 - point.pos.1 + PADDING,
                     self.thickness / 120.0,
                     color.0,
                     color.1,
                     color.2,
+                    point.label,
                 ));
             }
         }
