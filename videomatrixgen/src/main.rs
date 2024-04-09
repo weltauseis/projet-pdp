@@ -25,6 +25,4 @@ async fn main() {
         .unwrap_or(default_output);
 
     create_json_file_from_video(video_path, "frames", output_path).await;
-    /*  let video_path = &args[1];
-    create_json_file_from_video(video_path, "frames", "output.json").await; */
 }
