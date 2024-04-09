@@ -24,8 +24,8 @@ impl Exporter for CSVExporter {
                     "{},{},{},{}\n",
                     curve.get_name(),
                     point.get_label(),
-                    point.get_pos().get_x(),
-                    point.get_pos().get_y(),
+                    point.get_pos_x(),
+                    point.get_pos_y(),
                 ));
             }
         }

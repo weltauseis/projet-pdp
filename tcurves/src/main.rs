@@ -66,8 +66,8 @@ fn main() {
                 "  {}. - {} : ({:.2}, {:.2})",
                 i,
                 p.get_label(),
-                p.get_pos().get_x(),
-                p.get_pos().get_y()
+                p.get_pos_x(),
+                p.get_pos_y()
             );
         }
     }

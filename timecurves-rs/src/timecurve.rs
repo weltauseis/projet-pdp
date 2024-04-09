@@ -5,16 +5,39 @@ use crate::{
 };
 
 #[derive(Clone, Copy)]
+/// Represents a position in 2D space.
 pub struct Position {
+    // The x coordinate of the position.
     x: f64,
+    // The y coordinate of the position.
     y: f64,
 }
 
 impl Position {
+    /// Creates a new `Position` with the given x and y coordinates.
+    ///
+    /// ### Arguments
+    ///
+    /// * `x` - The x coordinate.
+    /// * `y` - The y coordinate.
+    ///
+    /// ### Returns
+    ///
+    /// A new `Position` with the given coordinates.
     pub fn new(x: f64, y: f64) -> Self {
         Position { x, y }
     }
 
+    /// Performs linear interpolation between two positions.
+    ///
+    /// ### Arguments
+    ///
+    /// * `other` - The other position to interpolate with.
+    /// * `t` - The interpolation parameter, ranging from 0.0 to 1.0.
+    ///
+    /// ### Returns
+    ///
+    /// The interpolated position.
     pub fn lerp(&self, other: &Position, t: f64) -> Position {
         Position {
             x: (1.0 - t) * self.x + t * other.x,
@@ -22,10 +45,12 @@ impl Position {
         }
     }
 
+    /// Returns the x coordinate of the position.
     pub fn get_x(&self) -> f64 {
         self.x
     }
 
+    /// Returns the y coordinate of the position.
     pub fn get_y(&self) -> f64 {
         self.y
     }
@@ -46,24 +71,39 @@ pub struct TimecurvePoint {
 }
 
 impl TimecurvePoint {
+    /// Returns the label of the timecurve point.
     pub fn get_label(&self) -> &str {
         &self.label
     }
 
+    /// Returns the timestamp of the timecurve point.
     pub fn get_t(&self) -> i64 {
         self.t
     }
 
+    /// Returns a reference to the position of the timecurve point.
     pub fn get_pos(&self) -> &Position {
         &self.pos
     }
 
+    /// Returns an optional reference to the previous control point of the timecurve point.
     pub fn get_c_prev(&self) -> Option<&Position> {
         self.c_prev.as_ref()
     }
 
+    /// Returns an optional reference to the next control point of the timecurve point.
     pub fn get_c_next(&self) -> Option<&Position> {
         self.c_next.as_ref()
+    }
+
+    /// Returns the x-coordinate of the position of the timecurve point.
+    pub fn get_pos_x(&self) -> f64 {
+        self.pos.get_x()
+    }
+
+    /// Returns the y-coordinate of the position of the timecurve point.
+    pub fn get_pos_y(&self) -> f64 {
+        self.pos.get_y()
     }
 }
 
@@ -79,11 +119,11 @@ pub struct Timecurve {
 impl Timecurve {
     /// Creates a new empty timecurve with the given name.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `name` - The name of the timecurve.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// A new `Timecurve` instance.
     fn new_empty(name: &str) -> Self {
@@ -95,13 +135,13 @@ impl Timecurve {
 
     /// Creates a new timecurve from a dataset and a list of points.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `dataset` - The dataset from which the timecurve is created.
     /// * `projected_points` - A slice of (x, y) points that make up the timecurve.
     ///   The length should be equal to the number of timelabels in the dataset.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// A new `Timecurve` instance.
     fn new(dataset: &Dataset, projected_points: &[Position]) -> Result<Self, TimecurveError> {
@@ -119,14 +159,21 @@ impl Timecurve {
         return Ok(timecurve);
     }
 
+    /// Returns the name of the timecurve.
     pub fn get_name(&self) -> &str {
         &self.name
     }
 
+    /// Returns a slice over the points of the timecurve.
     pub fn get_points(&self) -> &[TimecurvePoint] {
         &self.points
     }
 
+    /// Computes the control points for the timecurve.
+    ///
+    /// ##### Arguments
+    ///
+    /// * `sigma` - The smoothing parameter for the control points. For more information, see the paper.
     fn compute_control_points(&mut self, sigma: f64) {
         for i in 1..self.points.len() - 1 {
             let current = &self.points[i];
@@ -196,6 +243,17 @@ impl Timecurve {
         ));
     }
 
+    /// Evaluates the timecurve at a given point along the curve.
+    /// This could be useful for custom exporters that don't natively support bezier curves.
+    /// Or to draw the curve using mesh lines.
+    ///
+    /// ### Arguments
+    ///
+    /// * `u` - The parametric value at which to evaluate the timecurve. Should be in the range \[0, n\].
+    ///
+    /// ### Returns
+    ///
+    /// The position of the timecurve at the given parametric value.
     pub fn evaluate(&self, u: f64) -> Result<Position, TimecurveError> {
         let t = u.fract();
 
@@ -248,6 +306,12 @@ impl Timecurve {
         return Ok(d.lerp(&e, t));
     }
 
+    /// Rotates all points of the timecurve around the origin by a given angle.
+    /// This is useful for aligning the timecurves.
+    ///
+    /// ### Arguments
+    ///
+    /// * `angle` - The angle of rotation, in radians.
     fn rotate_points_around_origin(&mut self, angle: f64) {
         for p in &mut self.points {
             p.pos = rotate_point_around_origin(angle, p.pos);
@@ -260,22 +324,29 @@ impl Timecurve {
         }
     }
 
-    fn normalise_points(&mut self, y_min: f64, x_min: f64, range: f64) {
+    /// Normalises the points of the timecurve to the range \[0, 1\].
+    /// Arguments are needed so that we can normalise all timecurves contained in a set the same way.
+    ///
+    /// ### Arguments
+    ///
+    /// * `min` - The minimum value of the x and y coordinates of all points in the timecurve set.
+    /// * `range` - The range of the x and y coordinates of all points in the timecurve set.
+    fn normalise_points(&mut self, min: Position, range: f64) {
         // substract xmin or ymind to bring points into positive range ([0; +inf], [0; +inf])
         // then divide by range to bring them into ([0; 1], [0; 1])
         for p in &mut self.points {
-            p.pos.x = (p.pos.x - x_min) / range;
-            p.pos.y = (p.pos.y - y_min) / range;
+            p.pos.x = (p.pos.x - min.x) / range;
+            p.pos.y = (p.pos.y - min.y) / range;
 
             if let Some(c) = p.c_prev {
-                let new_x = (c.x - x_min) / range;
-                let new_y = (c.y - y_min) / range;
+                let new_x = (c.x - min.x) / range;
+                let new_y = (c.y - min.y) / range;
                 p.c_prev = Some(Position::new(new_x, new_y));
             }
 
             if let Some(c) = p.c_next {
-                let new_x = (c.x - x_min) / range;
-                let new_y = (c.y - y_min) / range;
+                let new_x = (c.x - min.x) / range;
+                let new_y = (c.y - min.y) / range;
                 p.c_next = Some(Position::new(new_x, new_y));
             }
         }
@@ -289,6 +360,15 @@ pub struct TimecurveSet {
 }
 
 impl TimecurveSet {
+    /// Creates a new `TimecurveSet` from an `InputData` instance and a projection algorithm.
+    /// The timecurves are aligned and normalised in the process, and the points are sorted chronologically.
+    ///
+    /// ### Arguments
+    /// * `input_data` - The input data containing the datasets and distance matrix.
+    /// * `proj_algo` - The projection algorithm to use to project the points.
+    ///
+    /// ### Returns
+    /// A new `TimecurveSet` instance.
     pub fn new(
         input_data: &InputData,
         proj_algo: impl ProjectionAlgorithm,
@@ -315,10 +395,12 @@ impl TimecurveSet {
         return Ok(timecurves);
     }
 
+    /// Returns a slice over the timecurves in the set.
     pub fn get_curves(&self) -> &[Timecurve] {
         &self.curves
     }
 
+    /// Aligns the timecurves in the set so that the first and last points of the first curve are aligned horizontally.
     fn align(&mut self) {
         // for multiple datasets, we align based on the first curve
         // like in the examples in the webpage
@@ -344,8 +426,8 @@ impl TimecurveSet {
         }
     }
 
+    /// Normalises all timecurves in the set so that their points are in the range \[0, 1\].
     fn normalise(&mut self) {
-        // normalise in range [0, 1]
         let mut x_min = f64::INFINITY;
         let mut x_max = f64::NEG_INFINITY;
         let mut y_min = f64::INFINITY;
@@ -367,19 +449,19 @@ impl TimecurveSet {
         let range = max - min;
 
         for curve in &mut self.curves {
-            curve.normalise_points(y_min, x_min, range);
+            curve.normalise_points(Position::new(x_min, y_min), range);
         }
     }
 }
 
 /// Utility function that calculates the new position of a point after a rotation around the origin.
 ///
-/// # Arguments
+/// ### Arguments
 ///
 /// * `angle` - The angle of rotation, in radians.
 /// * `p` - The point before transformation.
 ///
-/// # Returns
+/// ### Returns
 ///
 /// The transformed point.
 fn rotate_point_around_origin(angle: f64, p: Position) -> Position {
@@ -392,8 +474,18 @@ fn rotate_point_around_origin(angle: f64, p: Position) -> Position {
     Position::new(x_prime, y_prime)
 }
 
-// ATTENTION : ce code utilise NaiveDateTime donc il ne faut pas mélanger les timezone à l'interieur des différents datasets
-// c.a.d UNE SEULE TIMEZONE PAR FICHIER
+/// Utility function that converts a label to a unix timestamp.
+///
+/// ### Arguments
+///
+/// * `label` - The label to convert to a timestamp. Should be an ISO 8601 date or a number.
+///            If it is a number, it is assumed to be a unix timestamp.
+///
+/// ### Returns
+/// The unix timestamp corresponding to the label.
+///
+/// ### Note
+/// Please note that the label is assumed to be in UTC time. If it is not, the timestamp will be incorrect.
 fn label_to_time(label: &str) -> Result<i64, TimecurveError> {
     let mut date;
 

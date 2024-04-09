@@ -9,11 +9,11 @@ use crate::{
 pub trait ProjectionAlgorithm {
     /// Projects points described by a distance matrix onto a 2D space.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `distance_matrix` - A reference to a vector of rows representing the distance matrix.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// Returns a vector of tuples (x,y) representing the projected points.
     ///
@@ -39,7 +39,7 @@ pub trait ProjectionAlgorithm {
     /// match result {
     ///     Ok(points) => {
     ///         for point in points {
-    ///             println!("({},{})", point.0, point.1);
+    ///             println!("({},{})", point.get_x(), point.get_y());
     ///         }
     ///     }
     ///     Err(e) => {

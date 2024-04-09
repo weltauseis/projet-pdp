@@ -34,14 +34,14 @@ impl Exporter for SVGExporter {
                 // draw the spline between the two points
                 output.push_str(&format!(
                     "<path d=\"M {} {} C {} {} {} {} {} {}\" fill=\"none\" stroke=\"rgb({},{},{})\" stroke-width=\"{}\" />\n",
-                    p1.get_pos().get_x() + PADDING,
-                    1.0 - p1.get_pos().get_y() + PADDING, // because svg (0,0) is top left, so 1.0 - y to flip the y axis
+                    p1.get_pos_x() + PADDING,
+                    1.0 - p1.get_pos_y() + PADDING, // because svg (0,0) is top left, so 1.0 - y to flip the y axis
                     p1.get_c_next().unwrap().get_x() + PADDING,
                     1.0 - p1.get_c_next().unwrap().get_y() + PADDING,
                     p2.get_c_prev().unwrap().get_x() + PADDING,
                     1.0 - p2.get_c_prev().unwrap().get_y() + PADDING,
-                    p2.get_pos().get_x() + PADDING,
-                    1.0 - p2.get_pos().get_y() + PADDING,
+                    p2.get_pos_x() + PADDING,
+                    1.0 - p2.get_pos_y() + PADDING,
                     color.0,
                     color.1,
                     color.2,
@@ -56,8 +56,8 @@ impl Exporter for SVGExporter {
 
                 output.push_str(&format!(
                     "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"rgb({},{},{})\" data-timelabel=\"{}\"/>\n",
-                    point.get_pos().get_x() + PADDING,
-                    1.0 - point.get_pos().get_y() + PADDING,
+                    point.get_pos_x() + PADDING,
+                    1.0 - point.get_pos_y() + PADDING,
                     self.thickness / 120.0,
                     color.0,
                     color.1,
