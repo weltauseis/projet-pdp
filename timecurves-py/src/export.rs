@@ -3,22 +3,25 @@ use pyo3::prelude::*;
 use crate::timecurve::PyTimecurves;
 
 const TIKZ_DRAWING_SIZE: f64 = 10.;
+const LINE_THICKNESS: f64 = 1.0;
 const VEGA_DRAWING_SIZE: f64 = 400.;
 
 #[pyclass(name = "exporter")]
 pub struct PyExporter {
     pub ext: String,
     pub size: Option<f64>,
+    pub thickness: Option<f64>,
 }
 
 #[pymethods]
 impl PyExporter {
     #[new]
-    #[pyo3(signature = (str = "tikz",size = None))]
-    fn new(str: &str, size: Option<f64>) -> Self {
+    #[pyo3(signature = (str = "tikz",size = None, thickness = None))]
+    fn new(str: &str, size: Option<f64>, thickness: Option<f64>) -> Self {
         PyExporter {
             ext: str.to_string(),
             size,
+            thickness,
         }
     }
     fn export(&self, curves: &PyTimecurves) -> PyResult<String> {
@@ -26,6 +29,7 @@ impl PyExporter {
             "tikz" => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::TikzExporter::new(
                     self.size.unwrap_or(TIKZ_DRAWING_SIZE),
+                    self.thickness.unwrap_or(LINE_THICKNESS),
                 ),
                 &curves.timecurves,
             ),
@@ -34,7 +38,9 @@ impl PyExporter {
                 &curves.timecurves,
             ),
             "svg" => timecurves_rs::exporters::Exporter::export(
-                &timecurves_rs::exporters::SVGExporter::new(),
+                &timecurves_rs::exporters::SVGExporter::new(
+                    self.thickness.unwrap_or(LINE_THICKNESS),
+                ),
                 &curves.timecurves,
             ),
             "vegalite" => timecurves_rs::exporters::Exporter::export(
