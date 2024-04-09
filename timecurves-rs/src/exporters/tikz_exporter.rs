@@ -4,11 +4,15 @@ use super::Exporter;
 
 pub struct TikzExporter {
     drawing_size: f64,
+    thickness: f64,
 }
 
 impl TikzExporter {
-    pub fn new(drawing_size: f64) -> Self {
-        return Self { drawing_size };
+    pub fn new(drawing_size: f64, thickness: f64) -> Self {
+        return Self {
+            drawing_size,
+            thickness,
+        };
     }
 }
 
@@ -16,8 +20,8 @@ impl Exporter for TikzExporter {
     fn export(&self, timecurve_set: &TimecurveSet) -> String {
         let mut output = String::new();
 
-        let point_width = self.drawing_size / 100.0;
-        let line_width = self.drawing_size / 150.0;
+        let point_width = (self.drawing_size / 100.0) * self.thickness;
+        let line_width = (self.drawing_size / 150.0) * self.thickness;
 
         // header
         output.push_str("\\begin{tikzpicture}\n");

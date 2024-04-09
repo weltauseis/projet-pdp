@@ -1,10 +1,12 @@
 use super::Exporter;
 
-pub struct SVGExporter;
+pub struct SVGExporter {
+    pub thickness: f64,
+}
 
 impl SVGExporter {
-    pub fn new() -> Self {
-        return Self;
+    pub fn new(thickness: f64) -> Self {
+        return Self { thickness };
     }
 }
 
@@ -31,7 +33,7 @@ impl Exporter for SVGExporter {
 
                 // draw the spline between the two points
                 output.push_str(&format!(
-                    "<path d=\"M {} {} C {} {} {} {} {} {}\" fill=\"none\" stroke=\"rgb({},{},{})\" stroke-width=\"0.01\" />\n",
+                    "<path d=\"M {} {} C {} {} {} {} {} {}\" fill=\"none\" stroke=\"rgb({},{},{})\" stroke-width=\"{}\" />\n",
                     p1.pos.0 + PADDING,
                     1.0 - p1.pos.1 + PADDING, // because svg (0,0) is top left, so 1.0 - y to flip the y axis
                     p1.c_next.unwrap().0 + PADDING,
@@ -43,6 +45,7 @@ impl Exporter for SVGExporter {
                     color.0,
                     color.1,
                     color.2,
+                    self.thickness / 150.0,
                 ));
             }
 
@@ -52,12 +55,14 @@ impl Exporter for SVGExporter {
                 let color = super::curve_color_lerp(curve_id, u);
 
                 output.push_str(&format!(
-                    "<circle cx=\"{}\" cy=\"{}\" r=\"0.01\" fill=\"rgb({},{},{})\" />\n",
+                    "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"rgb({},{},{})\" data-timelabel=\"{}\"/>\n",
                     point.pos.0 + PADDING,
                     1.0 - point.pos.1 + PADDING,
+                    self.thickness / 120.0,
                     color.0,
                     color.1,
                     color.2,
+                    point.label,
                 ));
             }
         }
