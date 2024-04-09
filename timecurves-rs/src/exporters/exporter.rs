@@ -7,10 +7,30 @@ static COLORS: [(u8, u8, u8); 3] = [
     (149, 221, 60), // green
 ];
 
+/// Trait representing an exporter for timecurve sets.
 pub trait Exporter {
+    /// Exports the given timecurve set and returns the exported data as a string of the desired format.
+    ///
+    /// ### Arguments
+    ///
+    /// * `timecurve_set` - The timecurve set to be exported.
+    ///
+    /// ### Returns
+    ///
+    /// The exported data as a string.
     fn export(&self, timecurve_set: &TimecurveSet) -> String;
 }
 
+/// Utility function that linearly interpolates between two colors.
+///
+/// ### Arguments
+///
+/// * `curve_id` - The id of the curve. Used to determine the color.
+/// * `u` - The interpolation factor. Should be between 0.0 and 1.0.
+///
+/// ### Returns
+///
+/// A RGB tuple of three u8 values representing the interpolated color.
 pub fn curve_color_lerp(curve_id: usize, u: f32) -> (u8, u8, u8) {
     let color_id = curve_id % COLORS.len();
 

@@ -1,5 +1,3 @@
-// this module is responsible for parsing the input file
-
 use std::error::Error;
 
 use serde::{Deserialize, Serialize};
