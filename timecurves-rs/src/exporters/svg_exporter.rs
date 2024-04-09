@@ -34,14 +34,14 @@ impl Exporter for SVGExporter {
                 // draw the spline between the two points
                 output.push_str(&format!(
                     "<path d=\"M {} {} C {} {} {} {} {} {}\" fill=\"none\" stroke=\"rgb({},{},{})\" stroke-width=\"{}\" />\n",
-                    p1.pos.0 + PADDING,
-                    1.0 - p1.pos.1 + PADDING, // because svg (0,0) is top left, so 1.0 - y to flip the y axis
-                    p1.c_next.unwrap().0 + PADDING,
-                    1.0 - p1.c_next.unwrap().1 + PADDING,
-                    p2.c_prev.unwrap().0 + PADDING,
-                    1.0 - p2.c_prev.unwrap().1 + PADDING,
-                    p2.pos.0 + PADDING,
-                    1.0 - p2.pos.1 + PADDING,
+                    p1.get_pos().get_x() + PADDING,
+                    1.0 - p1.get_pos().get_y() + PADDING, // because svg (0,0) is top left, so 1.0 - y to flip the y axis
+                    p1.get_c_next().unwrap().get_x() + PADDING,
+                    1.0 - p1.get_c_next().unwrap().get_y() + PADDING,
+                    p2.get_c_prev().unwrap().get_x() + PADDING,
+                    1.0 - p2.get_c_prev().unwrap().get_y() + PADDING,
+                    p2.get_pos().get_x() + PADDING,
+                    1.0 - p2.get_pos().get_y() + PADDING,
                     color.0,
                     color.1,
                     color.2,
@@ -56,15 +56,36 @@ impl Exporter for SVGExporter {
 
                 output.push_str(&format!(
                     "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"rgb({},{},{})\" data-timelabel=\"{}\"/>\n",
-                    point.pos.0 + PADDING,
-                    1.0 - point.pos.1 + PADDING,
+                    point.get_pos().get_x() + PADDING,
+                    1.0 - point.get_pos().get_y() + PADDING,
                     self.thickness / 120.0,
                     color.0,
                     color.1,
                     color.2,
-                    point.label,
+                    point.get_label(),
                 ));
             }
+
+            // draw control points for debugging
+            /*            for point in curve.points.iter() {
+                if let Some(c_next) = point.get_c_next() {
+                    output.push_str(&format!(
+                        "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"red\" />\n",
+                        c_next.0 + PADDING,
+                        1.0 - c_next.1 + PADDING,
+                        self.thickness / 200.0,
+                    ));
+                }
+
+                if let Some(c_prev) = point.get_c_prev() {
+                    output.push_str(&format!(
+                        "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"blue\" />\n",
+                        c_prev.0 + PADDING,
+                        1.0 - c_prev.1 + PADDING,
+                        self.thickness / 200.0,
+                    ));
+                }
+            } */
         }
 
         // svg closing tags

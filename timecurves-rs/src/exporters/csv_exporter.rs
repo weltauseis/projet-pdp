@@ -22,7 +22,10 @@ impl Exporter for CSVExporter {
             for point in &curve.points {
                 output.push_str(&format!(
                     "{},{},{},{}\n",
-                    curve.name, point.label, point.pos.0, point.pos.1
+                    curve.get_name(),
+                    point.get_label(),
+                    point.get_pos().get_x(),
+                    point.get_pos().get_y(),
                 ));
             }
         }

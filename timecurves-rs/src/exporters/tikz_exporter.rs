@@ -47,14 +47,14 @@ impl Exporter for TikzExporter {
                     color.0,
                     color.1,
                     color.2,
-                    p1.pos.0 * self.drawing_size,
-                    p1.pos.1 * self.drawing_size,
-                    p1.c_next.unwrap().0 * self.drawing_size,
-                    p1.c_next.unwrap().1 * self.drawing_size,
-                    p2.c_prev.unwrap().0 * self.drawing_size,
-                    p2.c_prev.unwrap().1 * self.drawing_size,
-                    p2.pos.0 * self.drawing_size,
-                    p2.pos.1 * self.drawing_size,
+                    p1.get_pos().get_x() * self.drawing_size,
+                    p1.get_pos().get_y() * self.drawing_size,
+                    p1.get_c_next().unwrap().get_x() * self.drawing_size,
+                    p1.get_c_next().unwrap().get_y() * self.drawing_size,
+                    p2.get_c_prev().unwrap().get_x() * self.drawing_size,
+                    p2.get_c_prev().unwrap().get_y() * self.drawing_size,
+                    p2.get_pos().get_x() * self.drawing_size,
+                    p2.get_pos().get_y() * self.drawing_size,
                 ));
             }
         }
@@ -70,8 +70,8 @@ impl Exporter for TikzExporter {
                     color.0,
                     color.1,
                     color.2,
-                    point.pos.0 * self.drawing_size,
-                    point.pos.1 * self.drawing_size,
+                    point.get_pos().get_x() * self.drawing_size,
+                    point.get_pos().get_y() * self.drawing_size,
                     point_width
                 ));
             }

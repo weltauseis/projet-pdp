@@ -21,7 +21,7 @@ impl Exporter for VegaLiteExporter {
         let data = json!({
             "values": timecurve_set.curves.iter().flat_map(|curve| {
                 curve.points.iter().map(|point| {
-                    json!({"curve" : curve.name, "x": point.pos.0, "y": point.pos.1, "label": point.label, "t": point.t})
+                    json!({"curve" : curve.get_name(), "x": point.get_pos().get_x(), "y": point.get_pos().get_y(), "label": point.get_label(), "t": point.get_t()})
                 })
             }).collect::<Vec<serde_json::Value>>()
         });
