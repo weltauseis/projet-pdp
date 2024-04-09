@@ -1,16 +1,31 @@
 use super::Exporter;
 
+/// An exporter to SVG format.
 pub struct SVGExporter {
-    pub thickness: f64,
+    thickness: f64,
 }
 
 impl SVGExporter {
+    /// Creates a new instance of the SVG exporter.
+    ///
+    /// ### Arguments
+    ///
+    /// * `thickness` - The thickness of the lines and points in the SVG. 1.0 is the default value.
     pub fn new(thickness: f64) -> Self {
         return Self { thickness };
     }
 }
 
 impl Exporter for SVGExporter {
+    /// Exports the timecurve set to an SVG string.
+    ///
+    /// ### Arguments
+    /// * `timecurve_set` - The timecurve set to be exported.
+    ///
+    /// ### Returns
+    ///
+    /// The exported curves as an SVG string. Each SVG circle element has a `data-timelabel` attribute that contains the time label of the point.
+    /// This attribute can be used to display the time label when hovering over the point in a web browser, for custom visualizations.
     fn export(&self, timecurve_set: &crate::timecurve::TimecurveSet) -> String {
         let mut output = String::new();
 

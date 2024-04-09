@@ -2,12 +2,19 @@ use crate::timecurve::TimecurveSet;
 
 use super::Exporter;
 
+/// An exporter to Tikz format.
 pub struct TikzExporter {
     drawing_size: f64,
     thickness: f64,
 }
 
 impl TikzExporter {
+    /// Creates a new instance of the Tikz exporter.
+    ///
+    /// ### Arguments
+    ///
+    /// * `drawing_size` - The size of the drawing in cm.
+    /// * `thickness` - The thickness of the lines and points in the Tikz drawing. 1.0 is the default value.
     pub fn new(drawing_size: f64, thickness: f64) -> Self {
         return Self {
             drawing_size,
@@ -17,6 +24,16 @@ impl TikzExporter {
 }
 
 impl Exporter for TikzExporter {
+    /// Exports the timecurve set to a Tikz string.
+    ///
+    /// ### Arguments
+    ///
+    /// * `timecurve_set` - The timecurve set to be exported.
+    ///
+    /// ### Returns
+    ///
+    /// The exported data as a string in Tikz format.
+    /// The string opens and closes a Tikz picture environment, so it can be inserted directly in a LaTeX document.
     fn export(&self, timecurve_set: &TimecurveSet) -> String {
         let mut output = String::new();
 

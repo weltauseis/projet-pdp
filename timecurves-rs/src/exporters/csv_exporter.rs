@@ -2,6 +2,7 @@ use crate::timecurve::TimecurveSet;
 
 use super::exporter::Exporter;
 
+/// An exporter to CSV format.
 pub struct CSVExporter {}
 
 impl CSVExporter {
@@ -11,6 +12,18 @@ impl CSVExporter {
 }
 
 impl Exporter for CSVExporter {
+    /// Exports the timecurve set to a CSV string.
+    ///
+    /// ### Arguments
+    /// * `timecurve_set` - The timecurve set to be exported.
+    ///
+    /// ### Returns
+    ///
+    /// The exported data as a CSV string. The CSV file has the following columns:
+    /// - `curve`: The name of the curve.
+    /// - `label`: The label of the point.
+    /// - `x`: The x-coordinate of the point.
+    /// - `y`: The y-coordinate of the point.
     fn export(&self, timecurve_set: &TimecurveSet) -> String {
         let mut output = String::new();
 
