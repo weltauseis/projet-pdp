@@ -31,13 +31,13 @@ impl Exporter for TikzExporter {
         ));
 
         // draw the lines first so they are in the background
-        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
+        for (curve_id, curve) in timecurve_set.get_curves().iter().enumerate() {
             // for each overlapping couple of 2 points
-            for i in 0..curve.points.len() - 1 {
-                let p1 = &curve.points[i];
-                let p2 = &curve.points[i + 1];
+            for i in 0..curve.get_points().len() - 1 {
+                let p1 = &curve.get_points()[i];
+                let p2 = &curve.get_points()[i + 1];
 
-                let u = i as f32 / (curve.points.len() - 1) as f32;
+                let u = i as f32 / (curve.get_points().len() - 1) as f32;
                 let color = super::curve_color_lerp(curve_id, u);
 
                 // draw the spline between the two points
@@ -60,9 +60,9 @@ impl Exporter for TikzExporter {
         }
 
         // draw the points last so they sit on top of the lines
-        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
-            for (i, point) in curve.points.iter().enumerate() {
-                let u = i as f32 / (curve.points.len() - 1) as f32;
+        for (curve_id, curve) in timecurve_set.get_curves().iter().enumerate() {
+            for (i, point) in curve.get_points().iter().enumerate() {
+                let u = i as f32 / (curve.get_points().len() - 1) as f32;
                 let color = super::curve_color_lerp(curve_id, u);
 
                 output.push_str(&format!(

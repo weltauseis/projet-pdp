@@ -73,7 +73,7 @@ pub struct Timecurve {
     name: String,
     /// A list holding the points that make up the timecurve.
     /// If the curve is created from a projection algorithm, the points are sorted chronologically.
-    pub points: Vec<TimecurvePoint>,
+    points: Vec<TimecurvePoint>,
 }
 
 impl Timecurve {
@@ -89,7 +89,7 @@ impl Timecurve {
     fn new_empty(name: &str) -> Self {
         Timecurve {
             points: Vec::new(),
-            name: String::from(name),
+            name: name.to_owned(),
         }
     }
 
@@ -108,7 +108,7 @@ impl Timecurve {
         let mut timecurve = Timecurve::new_empty(&dataset.name);
         for (i, timelabel) in dataset.timelabels.iter().enumerate() {
             timecurve.points.push(TimecurvePoint {
-                label: String::from(timelabel),
+                label: timelabel.to_owned(),
                 t: label_to_time(&timelabel)?,
                 pos: projected_points[i],
                 c_prev: None,
@@ -121,6 +121,10 @@ impl Timecurve {
 
     pub fn get_name(&self) -> &str {
         &self.name
+    }
+
+    pub fn get_points(&self) -> &[TimecurvePoint] {
+        &self.points
     }
 
     fn compute_control_points(&mut self, sigma: f64) {
@@ -281,7 +285,7 @@ impl Timecurve {
 /// Represents a set of one or more timecurves sharing the same 2D space.
 pub struct TimecurveSet {
     /// A vector containing all the timecurves in the set.
-    pub curves: Vec<Timecurve>,
+    curves: Vec<Timecurve>,
 }
 
 impl TimecurveSet {
@@ -309,6 +313,10 @@ impl TimecurveSet {
         timecurves.align();
         timecurves.normalise();
         return Ok(timecurves);
+    }
+
+    pub fn get_curves(&self) -> &[Timecurve] {
+        &self.curves
     }
 
     fn align(&mut self) {

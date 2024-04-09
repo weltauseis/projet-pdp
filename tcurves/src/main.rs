@@ -59,9 +59,9 @@ fn main() {
     };
 
     info!("Curves for datasets calculated.");
-    for curve in &timecurves.curves {
+    for curve in timecurves.get_curves() {
         debug!("Points for dataset '{}' :", curve.get_name());
-        for (i, p) in curve.points.iter().enumerate() {
+        for (i, p) in curve.get_points().iter().enumerate() {
             debug!(
                 "  {}. - {} : ({:.2}, {:.2})",
                 i,

@@ -22,13 +22,13 @@ impl Exporter for SVGExporter {
         1.0 + PADDING * 2.0));
 
         // draw the lines first so they are in the background
-        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
+        for (curve_id, curve) in timecurve_set.get_curves().iter().enumerate() {
             // for each overlapping couple of 2 points
-            for i in 0..curve.points.len() - 1 {
-                let p1 = &curve.points[i];
-                let p2 = &curve.points[i + 1];
+            for i in 0..curve.get_points().len() - 1 {
+                let p1 = &curve.get_points()[i];
+                let p2 = &curve.get_points()[i + 1];
 
-                let u = i as f32 / (curve.points.len() - 1) as f32;
+                let u = i as f32 / (curve.get_points().len() - 1) as f32;
                 let color = super::curve_color_lerp(curve_id, u);
 
                 // draw the spline between the two points
@@ -50,8 +50,8 @@ impl Exporter for SVGExporter {
             }
 
             // draw the points last so they sit on top of the lines
-            for (i, point) in curve.points.iter().enumerate() {
-                let u = i as f32 / (curve.points.len() - 1) as f32;
+            for (i, point) in curve.get_points().iter().enumerate() {
+                let u = i as f32 / (curve.get_points().len() - 1) as f32;
                 let color = super::curve_color_lerp(curve_id, u);
 
                 output.push_str(&format!(
@@ -67,7 +67,7 @@ impl Exporter for SVGExporter {
             }
 
             // draw control points for debugging
-            /*            for point in curve.points.iter() {
+            /*            for point in curve.get_points().iter() {
                 if let Some(c_next) = point.get_c_next() {
                     output.push_str(&format!(
                         "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"red\" />\n",

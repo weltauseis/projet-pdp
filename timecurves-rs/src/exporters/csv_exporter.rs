@@ -18,8 +18,8 @@ impl Exporter for CSVExporter {
         output.push_str("curve,label,x,y\n");
 
         // points values
-        for curve in &timecurve_set.curves {
-            for point in &curve.points {
+        for curve in timecurve_set.get_curves() {
+            for point in curve.get_points() {
                 output.push_str(&format!(
                     "{},{},{},{}\n",
                     curve.get_name(),
