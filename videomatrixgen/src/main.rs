@@ -14,15 +14,13 @@ async fn main() {
             Arg::new("output_path")
                 .short('o')
                 .long("output")
-                .help("Path to the output file"),
+                .help("Path to the output file")
+                .default_value("output.json"),
         )
         .get_matches();
 
     let video_path = match_result.get_one::<String>("video_path").unwrap();
-    let default_output = &"output.json".to_string();
-    let output_path = match_result
-        .get_one::<String>("output_path")
-        .unwrap_or(default_output);
+    let output = match_result.get_one::<String>("output_path").unwrap();
 
-    create_json_file_from_video(video_path, "frames", output_path).await;
+    create_json_file_from_video(video_path, "frames", output).await;
 }
