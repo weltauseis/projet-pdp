@@ -4,6 +4,8 @@ use crate::{
     projection::ProjectionAlgorithm,
 };
 
+use palette::{Darken, Hsv, IntoColor, Mix, Srgb};
+
 #[derive(Clone, Copy)]
 /// Represents a position in 2D space.
 pub struct Position {
@@ -68,6 +70,8 @@ pub struct TimecurvePoint {
     c_prev: Option<Position>,
     /// The control point in the direction of the next point on the curve.
     c_next: Option<Position>,
+    /// The color of the point, for visualization purposes
+    color: (u8, u8, u8),
 }
 
 impl TimecurvePoint {
@@ -104,6 +108,11 @@ impl TimecurvePoint {
     /// Returns the y-coordinate of the position of the timecurve point.
     pub fn get_pos_y(&self) -> f64 {
         self.pos.get_y()
+    }
+
+    /// Returns the color of the point, as a RGB tuple.
+    pub fn get_color(&self) -> (u8, u8, u8) {
+        self.color
     }
 }
 
@@ -153,6 +162,7 @@ impl Timecurve {
                 pos: projected_points[i],
                 c_prev: None,
                 c_next: None,
+                color: (0, 0, 0),
             });
         }
 
@@ -392,6 +402,7 @@ impl TimecurveSet {
         //Must be in this order if we want the curve to be around the origin
         timecurves.align();
         timecurves.normalise();
+        timecurves.update_colors();
         return Ok(timecurves);
     }
 
@@ -450,6 +461,18 @@ impl TimecurveSet {
 
         for curve in &mut self.curves {
             curve.normalise_points(Position::new(x_min, y_min), range);
+        }
+    }
+
+    /// Updates the colors of the points in the timecurves.
+    fn update_colors(&mut self) {
+        for (i, curve) in self.curves.iter_mut().enumerate() {
+            let oldest = curve.points.first().unwrap().t as f32;
+            let newest = curve.points.last().unwrap().t as f32;
+
+            for point in curve.points.iter_mut() {
+                point.color = curve_color_lerp(i, (point.t as f32 - oldest) / (newest - oldest))
+            }
         }
     }
 }
@@ -511,4 +534,42 @@ fn label_to_time(label: &str) -> Result<i64, TimecurveError> {
         TimecurveErrorKind::InvalidTimeLabel,
         Some(&format!("Label : \"{}\"", label)),
     ));
+}
+
+/// Utility function that linearly interpolates between two colors.
+///
+/// ### Arguments
+///
+/// * `curve_id` - The id of the curve. Used to determine the color.
+/// * `u` - The interpolation factor. Should be between 0.0 and 1.0.
+///
+/// ### Returns
+///
+/// A RGB tuple of three u8 values representing the interpolated color.
+pub fn curve_color_lerp(curve_id: usize, u: f32) -> (u8, u8, u8) {
+    static COLORS: [(u8, u8, u8); 3] = [
+        (255, 105, 22), // orange
+        (34, 130, 251), // blue
+        (149, 221, 60), // green
+    ];
+
+    let color_id = curve_id % COLORS.len();
+
+    let r = COLORS[color_id].0;
+    let g = COLORS[color_id].1;
+    let b = COLORS[color_id].2;
+
+    let start_color: Hsv =
+        Srgb::new(r as f32 / 255.0, g as f32 / 255.0, b as f32 / 255.0).into_color();
+    let end_color = Hsv::from(start_color).darken(0.7);
+
+    let color = start_color.mix(end_color, u);
+
+    let srgb: Srgb = color.into_color();
+
+    return (
+        (srgb.red * 255.0) as u8,
+        (srgb.green * 255.0) as u8,
+        (srgb.blue * 255.0) as u8,
+    );
 }

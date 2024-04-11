@@ -37,14 +37,11 @@ impl Exporter for SVGExporter {
         1.0 + PADDING * 2.0));
 
         // draw the lines first so they are in the background
-        for (curve_id, curve) in timecurve_set.get_curves().iter().enumerate() {
+        for curve in timecurve_set.get_curves().iter() {
             // for each overlapping couple of 2 points
             for i in 0..curve.get_points().len() - 1 {
                 let p1 = &curve.get_points()[i];
                 let p2 = &curve.get_points()[i + 1];
-
-                let u = i as f32 / (curve.get_points().len() - 1) as f32;
-                let color = super::curve_color_lerp(curve_id, u);
 
                 // draw the spline between the two points
                 output.push_str(&format!(
@@ -57,26 +54,23 @@ impl Exporter for SVGExporter {
                     1.0 - p2.get_c_prev().unwrap().get_y() + PADDING,
                     p2.get_pos_x() + PADDING,
                     1.0 - p2.get_pos_y() + PADDING,
-                    color.0,
-                    color.1,
-                    color.2,
+                    p2.get_color().0,
+                    p2.get_color().1,
+                    p2.get_color().2,
                     self.thickness / 150.0,
                 ));
             }
 
             // draw the points last so they sit on top of the lines
-            for (i, point) in curve.get_points().iter().enumerate() {
-                let u = i as f32 / (curve.get_points().len() - 1) as f32;
-                let color = super::curve_color_lerp(curve_id, u);
-
+            for point in curve.get_points().iter() {
                 output.push_str(&format!(
                     "<circle cx=\"{}\" cy=\"{}\" r=\"{}\" fill=\"rgb({},{},{})\" data-timelabel=\"{}\"/>\n",
                     point.get_pos_x() + PADDING,
                     1.0 - point.get_pos_y() + PADDING,
                     self.thickness / 120.0,
-                    color.0,
-                    color.1,
-                    color.2,
+                    point.get_color().0,
+                    point.get_color().1,
+                    point.get_color().2,
                     point.get_label(),
                 ));
             }
