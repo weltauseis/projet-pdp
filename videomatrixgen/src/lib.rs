@@ -22,7 +22,11 @@ pub struct Frame {
 }
 
 //convert a video to a set of frames
-pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box<dyn Error>> {
+pub fn video_to_frames(
+    video_path: &str,
+    output_path: &str,
+    frame_nb: &u32,
+) -> Result<Video, Box<dyn Error>> {
     let old_output_path = Path::new(output_path);
     let mut _video = Video {
         path: video_path.to_string(),
@@ -41,8 +45,9 @@ pub fn video_to_frames(video_path: &str, output_path: &str) -> Result<Video, Box
 
     let output_path = output_path.to_str().unwrap();
     let output_path = format!("{}/frame%04d.png", output_path);
+    let frame_str = format!("fps={}", frame_nb);
     Command::new("ffmpeg")
-        .args(&["-i", video_path, "-vf", "fps=1", &output_path])
+        .args(&["-i", video_path, "-vf", &frame_str, &output_path])
         .output()?;
     //récupère le nombre de frames
     let mut i = 1;
@@ -108,8 +113,9 @@ pub async fn create_json_file_from_video(
     input_video: &str,
     output_images: &str,
     output_file: &str,
+    frame_nb: &u32,
 ) {
-    let video = video_to_frames(input_video, output_images).unwrap();
+    let video = video_to_frames(input_video, output_images, frame_nb).unwrap();
     let distance_matrix = (distance_matrix_calculate_multithreads(&video)).await;
     let mut output_file = File::create(output_file).unwrap();
 
