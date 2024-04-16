@@ -27,6 +27,9 @@ pub fn video_to_frames(
     output_path: &str,
     frame_nb: &u32,
 ) -> Result<Video, Box<dyn Error>> {
+    if !Path::new(video_path).exists() {
+        return Err("Video file does not exist".into());
+    }
     let old_output_path = Path::new(output_path);
     let mut _video = Video {
         path: video_path.to_string(),
