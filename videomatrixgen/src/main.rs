@@ -4,7 +4,7 @@ use videomatrixgen::create_json_file_from_video;
 #[tokio::main]
 async fn main() {
     let match_result = command!()
-        .about("Creates a matrix distance file from a video")
+        .about("Creates a distance matrix file from a video")
         .arg(
             Arg::new("video_path")
                 .help("Path to the video file")
