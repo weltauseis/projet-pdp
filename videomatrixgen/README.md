@@ -17,7 +17,7 @@ Arguments:
 <video_path> Chemin de la vidéo
 
 Options:
--o, --output <output_path>  Chemin du fichier de sortie [default: ./output.json]
+-o, --output <output_path>  Chemin du fichier de sortie [par défaut: ./output.json]
     --fps <fps>             Fréquence d'échantillonnage des frames [par défaut: 1]
 -h, --help                  Afficher l'aide
 -V, --version               Afficher la version

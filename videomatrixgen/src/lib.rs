@@ -7,7 +7,7 @@ use std::error::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
-use std::process::Command;
+use std::process::{exit, Command};
 use tokio::task;
 
 pub struct Video {
@@ -28,7 +28,8 @@ pub fn video_to_frames(
     frame_nb: &u32,
 ) -> Result<Video, Box<dyn Error>> {
     if !Path::new(video_path).exists() {
-        return Err("Video file does not exist".into());
+        eprintln!("Error : The following input video file does not exist : {}", video_path);
+        exit(1);
     }
     let old_output_path = Path::new(output_path);
     let mut _video = Video {
