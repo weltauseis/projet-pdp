@@ -17,12 +17,15 @@ impl From<Dataset> for PyDataset {
 impl PyDataset {
     #[new]
     pub fn new(name: &str, timelabels: Vec<String>) -> Self {
-        PyDataset {
-            inner: Dataset {
-                name: name.to_string(),
-                timelabels,
-            },
-        }
+        Dataset::new(name, timelabels).into()
+    }
+
+    pub fn get_name(&self) -> &str {
+        self.inner.get_name()
+    }
+
+    pub fn get_timelabels(&self) -> Vec<String> {
+        self.inner.get_timelabels().clone()
     }
 }
 
@@ -40,13 +43,25 @@ impl From<InputData> for PyInputData {
 #[pymethods]
 impl PyInputData {
     #[new]
-    pub fn new(distancematrix: Vec<Vec<f64>>, data: Vec<PyDataset>) -> Self {
-        PyInputData {
-            inner: InputData {
-                distancematrix,
-                data: data.into_iter().map(|d| d.inner).collect(),
-            },
-        }
+    pub fn new(distancematrix: Vec<Vec<f64>>, datasets: Vec<PyDataset>) -> Self {
+        InputData::from(
+            distancematrix,
+            datasets.into_iter().map(|d| d.inner).collect(),
+        )
+        .into()
+    }
+
+    pub fn get_distancematrix(&self) -> Vec<Vec<f64>> {
+        self.inner.get_distance_matrix().clone()
+    }
+
+    pub fn get_datasets(&self) -> Vec<PyDataset> {
+        self.inner
+            .get_datasets()
+            .clone()
+            .into_iter()
+            .map(|d| d.into())
+            .collect()
     }
 }
 
