@@ -9,5 +9,5 @@ name = "timecurves_py"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = "0.20.0"
+pyo3 = "0.21.2"
 timecurves_rs = {path = "../timecurves-rs"}
