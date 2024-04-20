@@ -2,6 +2,42 @@ use std::error::Error;
 
 use serde::{Deserialize, Serialize};
 
+/// Structure representing a single dataset.
+///
+/// Each `Dataset` is composed of a unique name and a list of timepoints.
+///
+/// # Structure
+/// - `name`: A unique identifier for the dataset.
+/// - `timepoints`: A list of timepoints associated with the dataset. Each timepoint should be either an ISO 8601 date and time string, or a simple number.
+///
+///  The structure of `Dataset` directly corresponds to the JSON structure of the input file, which allows for easy parsing
+/// thanks to the `serde_json` library.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Dataset {
+    name: String,
+    timelabels: Vec<String>,
+}
+
+impl Dataset {
+    /// Returns the name of the dataset.
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    /// Returns the list of time point labels associated with the dataset.
+    pub fn get_timelabels(&self) -> &Vec<String> {
+        &self.timelabels
+    }
+
+    /// Creates a new `Dataset` object with the given name and list of time point labels.
+    pub fn new(name: &str, timelabels: Vec<String>) -> Self {
+        Self {
+            name: name.to_string(),
+            timelabels,
+        }
+    }
+}
+
 /// Structure representing the parsed input file.
 ///
 /// It is composed of a distance matrix and a list of datasets. The structure of `Input`
@@ -16,22 +52,6 @@ use serde::{Deserialize, Serialize};
 pub struct InputData {
     pub distancematrix: Vec<Vec<f64>>,
     pub data: Vec<Dataset>,
-}
-
-/// Structure representing a single dataset.
-///
-/// Each `Dataset` is composed of a unique name and a list of timepoints.
-///
-/// # Structure
-/// - `name`: A unique identifier for the dataset.
-/// - `timepoints`: A list of timepoints associated with the dataset. Each timepoint should be either an ISO 8601 date and time string, or a simple number.
-///
-///  The structure of `Dataset` directly corresponds to the JSON structure of the input file, which allows for easy parsing
-/// thanks to the `serde_json` library.
-#[derive(Serialize, Deserialize)]
-pub struct Dataset {
-    pub name: String,
-    pub timelabels: Vec<String>,
 }
 
 impl InputData {
