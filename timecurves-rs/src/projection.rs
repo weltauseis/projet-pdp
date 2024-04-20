@@ -229,7 +229,7 @@ mod tests {
         ))
         .unwrap();
 
-        let points = classical_mds.project(&input.distancematrix).unwrap();
+        let points = classical_mds.project(input.get_distance_matrix()).unwrap();
 
         assert_eq!(points.len(), 100);
     }

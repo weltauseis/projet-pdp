@@ -385,10 +385,10 @@ impl TimecurveSet {
         proj_algo: impl ProjectionAlgorithm,
     ) -> Result<Self, TimecurveError> {
         let mut timecurves = TimecurveSet { curves: Vec::new() };
-        let projected_points = proj_algo.project(&input_data.distancematrix)?;
+        let projected_points = proj_algo.project(&input_data.get_distance_matrix())?;
 
         let mut index = 0; // index to keep track of where we are in the projected points
-        for dataset in &input_data.data {
+        for dataset in input_data.get_datasets() {
             let mut timecurve = Timecurve::new(
                 &dataset,
                 &projected_points[index..index + dataset.get_timelabels().len()],
