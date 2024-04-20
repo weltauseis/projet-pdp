@@ -50,8 +50,8 @@ impl Dataset {
 ///
 #[derive(Serialize, Deserialize)]
 pub struct InputData {
-    pub distancematrix: Vec<Vec<f64>>,
-    pub data: Vec<Dataset>,
+    distancematrix: Vec<Vec<f64>>,
+    data: Vec<Dataset>,
 }
 
 impl InputData {
@@ -99,5 +99,15 @@ impl InputData {
             distancematrix: dmatrix,
             data: datasets,
         }
+    }
+
+    /// Returns a reference to the distance matrix.
+    pub fn get_distance_matrix(&self) -> &Vec<Vec<f64>> {
+        &self.distancematrix
+    }
+
+    /// Returns a reference to the list of datasets.
+    pub fn get_datasets(&self) -> &Vec<Dataset> {
+        &self.data
     }
 }

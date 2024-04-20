@@ -44,8 +44,8 @@ fn main() {
     };
 
     info!("Input file <{}> read.", &cmd.input.display());
-    info!("Contains {} datasets :", input.data.len());
-    for dataset in &input.data {
+    info!("Contains {} datasets :", input.get_datasets().len());
+    for dataset in input.get_datasets() {
         info!("  - {}", dataset.get_name());
     }
 
