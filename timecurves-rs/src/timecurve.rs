@@ -40,7 +40,7 @@ impl Position {
     /// ### Returns
     ///
     /// The interpolated position.
-    pub fn lerp(&self, other: &Position, t: f64) -> Position {
+    fn lerp(&self, other: &Position, t: f64) -> Position {
         Position {
             x: (1.0 - t) * self.x + t * other.x,
             y: (1.0 - t) * self.y + t * other.y,
@@ -59,6 +59,7 @@ impl Position {
 }
 
 /// Represents a point on a timecurve.
+#[derive(Clone)]
 pub struct TimecurvePoint {
     /// The string label associated with the point.
     label: String,
@@ -154,8 +155,8 @@ impl Timecurve {
     ///
     /// A new `Timecurve` instance.
     fn new(dataset: &Dataset, projected_points: &[Position]) -> Result<Self, TimecurveError> {
-        let mut timecurve = Timecurve::new_empty(&dataset.name);
-        for (i, timelabel) in dataset.timelabels.iter().enumerate() {
+        let mut timecurve = Timecurve::new_empty(dataset.get_name());
+        for (i, timelabel) in dataset.get_timelabels().iter().enumerate() {
             timecurve.points.push(TimecurvePoint {
                 label: timelabel.to_owned(),
                 t: label_to_time(&timelabel)?,
@@ -390,14 +391,14 @@ impl TimecurveSet {
         for dataset in &input_data.data {
             let mut timecurve = Timecurve::new(
                 &dataset,
-                &projected_points[index..index + dataset.timelabels.len()],
+                &projected_points[index..index + dataset.get_timelabels().len()],
             )?;
 
             timecurve.points.sort_by_key(|p| p.t);
             timecurve.compute_control_points(0.3);
             timecurves.curves.push(timecurve);
 
-            index += dataset.timelabels.len();
+            index += dataset.get_timelabels().len();
         }
         //Must be in this order if we want the curve to be around the origin
         timecurves.align();

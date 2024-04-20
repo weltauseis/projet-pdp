@@ -46,7 +46,7 @@ fn main() {
     info!("Input file <{}> read.", &cmd.input.display());
     info!("Contains {} datasets :", input.data.len());
     for dataset in &input.data {
-        info!("  - {}", dataset.name);
+        info!("  - {}", dataset.get_name());
     }
 
     let timecurves = match TimecurveSet::new(&input, ClassicalMDS::new()) {
