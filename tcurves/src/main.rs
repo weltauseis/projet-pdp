@@ -59,10 +59,16 @@ fn main() {
     };
 
     info!("Curves for datasets calculated.");
-    for curve in &timecurves.curves {
-        debug!("Points for dataset '{}' :", curve.name);
-        for (i, p) in curve.points.iter().enumerate() {
-            debug!("  {}. - {} : ({:.2}, {:.2})", i, p.label, p.pos.0, p.pos.1);
+    for curve in timecurves.get_curves() {
+        debug!("Points for dataset '{}' :", curve.get_name());
+        for (i, p) in curve.get_points().iter().enumerate() {
+            debug!(
+                "  {}. - {} : ({:.2}, {:.2})",
+                i,
+                p.get_label(),
+                p.get_pos_x(),
+                p.get_pos_y()
+            );
         }
     }
 

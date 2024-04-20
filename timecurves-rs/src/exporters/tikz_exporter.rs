@@ -2,12 +2,19 @@ use crate::timecurve::TimecurveSet;
 
 use super::Exporter;
 
+/// An exporter to Tikz format.
 pub struct TikzExporter {
     drawing_size: f64,
     thickness: f64,
 }
 
 impl TikzExporter {
+    /// Creates a new instance of the Tikz exporter.
+    ///
+    /// ### Arguments
+    ///
+    /// * `drawing_size` - The size of the drawing in cm.
+    /// * `thickness` - The thickness of the lines and points in the Tikz drawing. 1.0 is the default value.
     pub fn new(drawing_size: f64, thickness: f64) -> Self {
         return Self {
             drawing_size,
@@ -17,6 +24,16 @@ impl TikzExporter {
 }
 
 impl Exporter for TikzExporter {
+    /// Exports the timecurve set to a Tikz string.
+    ///
+    /// ### Arguments
+    ///
+    /// * `timecurve_set` - The timecurve set to be exported.
+    ///
+    /// ### Returns
+    ///
+    /// The exported data as a string in Tikz format.
+    /// The string opens and closes a Tikz picture environment, so it can be inserted directly in a LaTeX document.
     fn export(&self, timecurve_set: &TimecurveSet) -> String {
         let mut output = String::new();
 
@@ -31,47 +48,41 @@ impl Exporter for TikzExporter {
         ));
 
         // draw the lines first so they are in the background
-        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
+        for curve in timecurve_set.get_curves().iter() {
             // for each overlapping couple of 2 points
-            for i in 0..curve.points.len() - 1 {
-                let p1 = &curve.points[i];
-                let p2 = &curve.points[i + 1];
-
-                let u = i as f32 / (curve.points.len() - 1) as f32;
-                let color = super::curve_color_lerp(curve_id, u);
+            for i in 0..curve.get_points().len() - 1 {
+                let p1 = &curve.get_points()[i];
+                let p2 = &curve.get_points()[i + 1];
 
                 // draw the spline between the two points
                 output.push_str(&format!(
                     "\\draw [line width={:.4}cm, color={{rgb, 255:red, {}; green, {}; blue, {}}}] ({},{}) .. controls ({},{}) and ({},{}) .. ({},{});\n",
                     line_width,
-                    color.0,
-                    color.1,
-                    color.2,
-                    p1.pos.0 * self.drawing_size,
-                    p1.pos.1 * self.drawing_size,
-                    p1.c_next.unwrap().0 * self.drawing_size,
-                    p1.c_next.unwrap().1 * self.drawing_size,
-                    p2.c_prev.unwrap().0 * self.drawing_size,
-                    p2.c_prev.unwrap().1 * self.drawing_size,
-                    p2.pos.0 * self.drawing_size,
-                    p2.pos.1 * self.drawing_size,
+                    p2.get_color().0,
+                    p2.get_color().1,
+                    p2.get_color().2,
+                    p1.get_pos_x() * self.drawing_size,
+                    p1.get_pos_y() * self.drawing_size,
+                    p1.get_c_next().unwrap().get_x() * self.drawing_size,
+                    p1.get_c_next().unwrap().get_y() * self.drawing_size,
+                    p2.get_c_prev().unwrap().get_x() * self.drawing_size,
+                    p2.get_c_prev().unwrap().get_y() * self.drawing_size,
+                    p2.get_pos_x() * self.drawing_size,
+                    p2.get_pos_y() * self.drawing_size,
                 ));
             }
         }
 
         // draw the points last so they sit on top of the lines
-        for (curve_id, curve) in timecurve_set.curves.iter().enumerate() {
-            for (i, point) in curve.points.iter().enumerate() {
-                let u = i as f32 / (curve.points.len() - 1) as f32;
-                let color = super::curve_color_lerp(curve_id, u);
-
+        for curve in timecurve_set.get_curves().iter() {
+            for point in curve.get_points().iter() {
                 output.push_str(&format!(
                     "\\draw[color=white, thick, fill={{rgb, 255:red, {}; green, {}; blue, {}}}] ({},{}) circle ({});\n",
-                    color.0,
-                    color.1,
-                    color.2,
-                    point.pos.0 * self.drawing_size,
-                    point.pos.1 * self.drawing_size,
+                    point.get_color().0,
+                    point.get_color().1,
+                    point.get_color().2,
+                    point.get_pos_x() * self.drawing_size,
+                    point.get_pos_y() * self.drawing_size,
                     point_width
                 ));
             }

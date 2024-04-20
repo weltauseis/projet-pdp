@@ -15,11 +15,11 @@ Rajouter de la documentation pour TOUS les types et TOUTES les fonctions auxquel
 ```rust
 /// Creates a new `InputData` object from a JSON string.
 ///
-/// # Arguments
+/// ### Arguments
 ///
 /// * `string` - A JSON string representing the input data.
 ///
-/// # Returns
+/// ### Returns
 ///
 /// Returns a `Result` containing the parsed `InputData` object or an error if parsing fails.
 pub fn from_str(string: &str) -> Result<Self, Box<dyn Error>> {

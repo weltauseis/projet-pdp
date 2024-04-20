@@ -1,5 +1,3 @@
-// this module is responsible for parsing the input file
-
 use std::error::Error;
 
 use serde::{Deserialize, Serialize};
@@ -39,11 +37,11 @@ pub struct Dataset {
 impl InputData {
     /// Creates a new `InputData` object from a JSON string.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `string` - A JSON string representing the input data.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// Returns a `Result` containing the parsed `InputData` object or an error if parsing fails.
     pub fn from_str(string: &str) -> Result<Self, Box<dyn Error>> {
@@ -53,11 +51,11 @@ impl InputData {
 
     /// Creates a new `InputData` object by parsing the contents of a JSON file.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `filename` - The path to the input file.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// Returns a `Result` containing the parsed `InputData` object or an error if parsing fails.
     pub fn from_filename(filename: &str) -> Result<Self, Box<dyn Error>> {
@@ -68,12 +66,12 @@ impl InputData {
 
     /// Creates a new `InputData` object from a distance matrix and a list of datasets.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `dmatrix` - A 2D vector representing the distance matrix.
     /// * `datasets` - A vector of `Dataset` objects.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// Returns a new `InputData` object initialized with the given distance matrix and datasets.
     pub fn from(dmatrix: Vec<Vec<f64>>, datasets: Vec<Dataset>) -> Self {

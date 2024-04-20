@@ -1,16 +1,19 @@
 use nalgebra::{DMatrix, DVector};
 
-use crate::error::{TimecurveError, TimecurveErrorKind};
+use crate::{
+    error::{TimecurveError, TimecurveErrorKind},
+    timecurve::Position,
+};
 
 /// Trait representing a projection algorithm.
 pub trait ProjectionAlgorithm {
     /// Projects points described by a distance matrix onto a 2D space.
     ///
-    /// # Arguments
+    /// ### Arguments
     ///
     /// * `distance_matrix` - A reference to a vector of rows representing the distance matrix.
     ///
-    /// # Returns
+    /// ### Returns
     ///
     /// Returns a vector of tuples (x,y) representing the projected points.
     ///
@@ -36,7 +39,7 @@ pub trait ProjectionAlgorithm {
     /// match result {
     ///     Ok(points) => {
     ///         for point in points {
-    ///             println!("({},{})", point.0, point.1);
+    ///             println!("({},{})", point.get_x(), point.get_y());
     ///         }
     ///     }
     ///     Err(e) => {
@@ -45,7 +48,7 @@ pub trait ProjectionAlgorithm {
     ///     }
     /// }
     /// ```
-    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<(f64, f64)>, TimecurveError>;
+    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<Position>, TimecurveError>;
 }
 
 /// Structure representing the classical Multidimensional Scaling (MDS) algorithm.
@@ -59,7 +62,7 @@ impl ClassicalMDS {
 }
 
 impl ProjectionAlgorithm for ClassicalMDS {
-    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<(f64, f64)>, TimecurveError> {
+    fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<Position>, TimecurveError> {
         let n = distance_matrix.len();
         let m = match distance_matrix.get(0) {
             Some(row) => row.len(),
@@ -146,10 +149,10 @@ impl ProjectionAlgorithm for ClassicalMDS {
 
         let x_mat = e_m * l_m;
 
-        let mut points: Vec<(f64, f64)> = Vec::new();
+        let mut points = Vec::new();
         for i in 0..x_mat.nrows() {
             // [x_mat[(i, 0)], x_mat[(i, 1)]]
-            points.push((x_mat[(i, 0)], x_mat[(i, 1)]));
+            points.push(Position::new(x_mat[(i, 0)], x_mat[(i, 1)]));
         }
 
         return Ok(points);
@@ -177,18 +180,21 @@ mod tests {
         let epsilon: f64 = 10e-3;
 
         // dist a <-> b
-        let dist_a_b =
-            ((points[0].0 - points[1].0).powf(2.0) + (points[0].1 - points[1].1).powf(2.0)).sqrt();
+        let dist_a_b = ((points[0].get_x() - points[1].get_x()).powf(2.0)
+            + (points[0].get_y() - points[1].get_y()).powf(2.0))
+        .sqrt();
         assert!(dist_a_b < 1.0 + epsilon && dist_a_b > 1.0 - epsilon);
 
         // dist a <-> c
-        let dist_a_c =
-            ((points[0].0 - points[2].0).powf(2.0) + (points[0].1 - points[2].1).powf(2.0)).sqrt();
+        let dist_a_c = ((points[0].get_x() - points[2].get_x()).powf(2.0)
+            + (points[0].get_y() - points[2].get_y()).powf(2.0))
+        .sqrt();
         assert!(dist_a_c < 2.0 + epsilon && dist_a_c > 2.0 - epsilon);
 
         // dist b <-> c
-        let dist_b_c =
-            ((points[1].0 - points[2].0).powf(2.0) + (points[1].1 - points[2].1).powf(2.0)).sqrt();
+        let dist_b_c = ((points[1].get_x() - points[2].get_x()).powf(2.0)
+            + (points[1].get_y() - points[2].get_y()).powf(2.0))
+        .sqrt();
         assert!(dist_b_c < 3.0 + epsilon && dist_b_c > 3.0 - epsilon);
     }
 
