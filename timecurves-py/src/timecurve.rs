@@ -1,7 +1,7 @@
 use pyo3::prelude::*;
-use timecurves_rs::timecurve::Position;
+use timecurves_rs::timecurve::{Position, TimecurvePoint};
 
-#[pyclass(name = "position")]
+#[pyclass(name = "Position")]
 pub struct PyPosition {
     inner: Position,
 }
@@ -25,6 +25,52 @@ impl PyPosition {
 
     pub fn get_y(&self) -> f64 {
         self.inner.get_y()
+    }
+}
+
+#[pyclass(name = "TimecurvePoint")]
+pub struct PyTimecurvePoint {
+    inner: TimecurvePoint,
+}
+
+impl From<TimecurvePoint> for PyTimecurvePoint {
+    fn from(p: TimecurvePoint) -> Self {
+        PyTimecurvePoint { inner: p }
+    }
+}
+
+#[pymethods]
+impl PyTimecurvePoint {
+    pub fn get_label(&self) -> &str {
+        &self.inner.get_label()
+    }
+
+    pub fn get_t(&self) -> i64 {
+        self.inner.get_t()
+    }
+
+    pub fn get_pos(&self) -> PyPosition {
+        self.inner.get_pos().clone().into()
+    }
+
+    pub fn get_c_prev(&self) -> Option<PyPosition> {
+        self.inner.get_c_prev().map(|p| p.clone().into())
+    }
+
+    pub fn get_c_next(&self) -> Option<PyPosition> {
+        self.inner.get_c_next().map(|p| p.clone().into())
+    }
+
+    pub fn get_pos_x(&self) -> f64 {
+        self.inner.get_pos().get_x()
+    }
+
+    pub fn get_pos_y(&self) -> f64 {
+        self.inner.get_pos().get_y()
+    }
+
+    pub fn get_color(&self) -> (u8, u8, u8) {
+        self.inner.get_color()
     }
 }
 
