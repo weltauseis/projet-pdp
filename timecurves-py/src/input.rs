@@ -51,7 +51,7 @@ impl PyInputData {
         .into()
     }
 
-    pub fn get_distancematrix(&self) -> Vec<Vec<f64>> {
+    pub fn get_distance_matrix(&self) -> Vec<Vec<f64>> {
         self.inner.get_distance_matrix().clone()
     }
 
