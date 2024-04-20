@@ -1,9 +1,34 @@
-use pyo3::{exceptions::PyValueError, prelude::*};
-use timecurves_rs::{projection::ClassicalMDS, timecurve::TimecurveSet};
+use pyo3::prelude::*;
+use timecurves_rs::timecurve::Position;
 
-use crate::input::PyInputData;
+#[pyclass(name = "position")]
+pub struct PyPosition {
+    inner: Position,
+}
 
-#[pyclass(name = "timecurves")]
+impl From<Position> for PyPosition {
+    fn from(p: Position) -> Self {
+        PyPosition { inner: p }
+    }
+}
+
+#[pymethods]
+impl PyPosition {
+    #[new]
+    pub fn new(x: f64, y: f64) -> Self {
+        PyPosition::from(Position::new(x, y))
+    }
+
+    pub fn get_x(&self) -> f64 {
+        self.inner.get_x()
+    }
+
+    pub fn get_y(&self) -> f64 {
+        self.inner.get_y()
+    }
+}
+
+/* #[pyclass(name = "timecurves")]
 pub struct PyTimecurves {
     pub timecurves: TimecurveSet,
 }
@@ -40,3 +65,4 @@ pub fn timecurves_from_data(input_data: &PyInputData, algorithm: &str) -> PyResu
         Err(e) => Err(PyValueError::new_err(e.to_string())),
     }
 }
+ */
