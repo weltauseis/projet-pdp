@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use timecurves_rs::timecurve::{Position, TimecurvePoint};
+use timecurves_rs::timecurve::{Position, Timecurve, TimecurvePoint};
 
 #[pyclass(name = "Position")]
 pub struct PyPosition {
@@ -71,6 +71,32 @@ impl PyTimecurvePoint {
 
     pub fn get_color(&self) -> (u8, u8, u8) {
         self.inner.get_color()
+    }
+}
+
+#[pyclass(name = "Timecurve")]
+pub struct PyTimecurve {
+    inner: Timecurve,
+}
+
+impl From<Timecurve> for PyTimecurve {
+    fn from(tc: Timecurve) -> Self {
+        PyTimecurve { inner: tc }
+    }
+}
+
+#[pymethods]
+impl PyTimecurve {
+    pub fn get_name(&self) -> &str {
+        &self.inner.get_name()
+    }
+
+    pub fn get_points(&self) -> Vec<PyTimecurvePoint> {
+        self.inner
+            .get_points()
+            .iter()
+            .map(|p| p.clone().into())
+            .collect()
     }
 }
 
