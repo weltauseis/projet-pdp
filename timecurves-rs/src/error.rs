@@ -16,6 +16,8 @@ pub enum TimecurveErrorKind {
     EvaluatedOutsideRange,
     /// The time label is not in any valid format.
     InvalidTimeLabel,
+    /// An error occured in a python function passed to the library.
+    PythonError,
 }
 
 impl std::fmt::Display for TimecurveError {
@@ -29,6 +31,7 @@ impl std::fmt::Display for TimecurveError {
                     TimecurveErrorKind::EvaluatedOutsideRange =>
                         "Tried to evaluate timecurve outside its range !",
                     TimecurveErrorKind::InvalidTimeLabel => "Timelabel is invalid !",
+                    TimecurveErrorKind:: PythonError => "/// An error occured in a python function passed to the library !",
                 },
                 info
             )?;
