@@ -118,6 +118,7 @@ impl TimecurvePoint {
 }
 
 /// Represents a single timecurve.
+#[derive(Clone)]
 pub struct Timecurve {
     /// The name of the timecurve.
     name: String,
