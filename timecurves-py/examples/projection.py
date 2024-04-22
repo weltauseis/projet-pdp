@@ -4,7 +4,7 @@ import timecurves_py as tc
 input_data = tc.input_from_filename("../tcurves/data/template.json")
 
 # Create a classical MDS projection object
-mds = tc.ClassicalMDS()
+mds = tc.ProjectionAlgorithm.classical_mds()
 
 # Project the points
 points = mds.project(input_data.get_distance_matrix())

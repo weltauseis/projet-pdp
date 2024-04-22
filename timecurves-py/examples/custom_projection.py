@@ -13,7 +13,7 @@ class RandomProjection:
         return points
 
 # wrap it
-proj_algo = tc.UserAlgorithm(RandomProjection())
+proj_algo = tc.ProjectionAlgorithm(RandomProjection())
 
 # Project the points
 points = proj_algo.project(input_data.get_distance_matrix())
