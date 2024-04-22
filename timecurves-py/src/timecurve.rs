@@ -1,8 +1,5 @@
 use pyo3::{exceptions::PyValueError, prelude::*};
-use timecurves_rs::{
-    projection::ProjectionAlgorithm,
-    timecurve::{Position, Timecurve, TimecurvePoint, TimecurveSet},
-};
+use timecurves_rs::timecurve::{Position, Timecurve, TimecurvePoint, TimecurveSet};
 
 use crate::{input::PyInputData, projection::PyProjAlgorithm};
 

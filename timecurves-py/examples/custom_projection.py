@@ -6,7 +6,7 @@ input_data = tc.input_from_filename("../tcurves/data/template.json")
 
 # create custom projection class
 class RandomProjection:
-    def project(self, distance_matrix):
+    def eproject(self, distance_matrix):
         points = []
         for row in distance_matrix:
             points.append(tc.Position(random.random(), random.random()))
