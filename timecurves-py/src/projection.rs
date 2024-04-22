@@ -36,12 +36,13 @@ impl PyClassicalMDS {
 }
 
 // https://pyo3.rs/v0.21.2/trait-bounds
-#[pyclass(name = "UserAlgorithm")]
-pub struct PyUserAlgorithm {
+#[pyclass(name = "ProjectionAlgorithm")]
+#[derive(Clone)]
+pub struct PyProjAlgorithm {
     algo: Py<PyAny>,
 }
 
-impl ProjectionAlgorithm for PyUserAlgorithm {
+impl ProjectionAlgorithm for PyProjAlgorithm {
     fn project(&self, distance_matrix: &Vec<Vec<f64>>) -> Result<Vec<Position>, TimecurveError> {
         let result: Result<Vec<Position>, TimecurveError> = Python::with_gil(|py| {
             let a: Result<Vec<PyRef<PyPosition>>, PyErr> = self
@@ -68,10 +69,15 @@ impl ProjectionAlgorithm for PyUserAlgorithm {
 }
 
 #[pymethods]
-impl PyUserAlgorithm {
+impl PyProjAlgorithm {
     #[new]
     pub fn new(algo: Py<PyAny>) -> Self {
-        PyUserAlgorithm { algo }
+        PyProjAlgorithm { algo }
+    }
+
+    #[staticmethod]
+    pub fn classical_mds() -> PyClassicalMDS {
+        ClassicalMDS::new().into()
     }
 
     pub fn project(&self, distance_matrix: Vec<Vec<f64>>) -> PyResult<Vec<PyPosition>> {

@@ -1,10 +1,10 @@
-use pyo3::prelude::*;
+use pyo3::{exceptions::PyValueError, prelude::*};
 use timecurves_rs::{
     projection::ProjectionAlgorithm,
     timecurve::{Position, Timecurve, TimecurvePoint, TimecurveSet},
 };
 
-use crate::{input::PyInputData, projection::PyClassicalMDS};
+use crate::{input::PyInputData, projection::PyProjAlgorithm};
 
 #[pyclass(name = "Position")]
 pub struct PyPosition {
@@ -80,6 +80,7 @@ impl PyTimecurvePoint {
 }
 
 #[pyclass(name = "Timecurve")]
+#[derive(Clone)]
 pub struct PyTimecurve {
     inner: Timecurve,
 }
@@ -106,21 +107,35 @@ impl PyTimecurve {
 }
 
 #[pyclass(name = "TimecurveSet")]
-pub struct PyTimecurves {
+pub struct PyTimecurveSet {
     pub inner: TimecurveSet,
 }
 
-impl From<TimecurveSet> for PyTimecurves {
+impl From<TimecurveSet> for PyTimecurveSet {
     fn from(tc: TimecurveSet) -> Self {
-        PyTimecurves { inner: tc }
+        PyTimecurveSet { inner: tc }
     }
 }
-/*
+
 #[pymethods]
-impl PyTimecurves {
+impl PyTimecurveSet {
     #[new]
-    pub fn new(input_data: &PyInputData, proj_algo: Bound<'_, PyAny>) -> PyResult<Self> {
+    pub fn new(input_data: &PyInputData, proj_algo: PyProjAlgorithm) -> PyResult<Self> {
         let input_data = &input_data.inner;
+
+        let set = TimecurveSet::new(input_data, proj_algo);
+
+        match set {
+            Ok(set) => Ok(set.into()),
+            Err(e) => Err(PyErr::new::<PyValueError, _>(format!("{}", e))),
+        }
+    }
+
+    pub fn get_curves(&self) -> Vec<PyTimecurve> {
+        self.inner
+            .get_curves()
+            .iter()
+            .map(|tc| tc.clone().into())
+            .collect()
     }
 }
- */
