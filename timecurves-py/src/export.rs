@@ -1,12 +1,12 @@
 use pyo3::prelude::*;
 
-use crate::timecurve::PyTimecurves;
+use crate::timecurve::PyTimecurveSet;
 
 const TIKZ_DRAWING_SIZE: f64 = 10.;
 const LINE_THICKNESS: f64 = 1.0;
 const VEGA_DRAWING_SIZE: f64 = 400.;
 
-#[pyclass(name = "exporter")]
+#[pyclass(name = "Exporter")]
 pub struct PyExporter {
     pub ext: String,
     pub size: Option<f64>,
@@ -24,30 +24,31 @@ impl PyExporter {
             thickness,
         }
     }
-    fn export(&self, curves: &PyTimecurves) -> PyResult<String> {
+
+    fn export(&self, curves: &PyTimecurveSet) -> PyResult<String> {
         Ok(match self.ext.as_str() {
             "tikz" => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::TikzExporter::new(
                     self.size.unwrap_or(TIKZ_DRAWING_SIZE),
                     self.thickness.unwrap_or(LINE_THICKNESS),
                 ),
-                &curves.timecurves,
+                &curves.inner,
             ),
             "csv" => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::CSVExporter::new(),
-                &curves.timecurves,
+                &curves.inner,
             ),
             "svg" => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::SVGExporter::new(
                     self.thickness.unwrap_or(LINE_THICKNESS),
                 ),
-                &curves.timecurves,
+                &curves.inner,
             ),
             "vegalite" => timecurves_rs::exporters::Exporter::export(
                 &timecurves_rs::exporters::VegaLiteExporter::new(
                     self.size.unwrap_or(VEGA_DRAWING_SIZE) as u64,
                 ),
-                &curves.timecurves,
+                &curves.inner,
             ),
             _ => {
                 return Err(pyo3::exceptions::PyValueError::new_err(

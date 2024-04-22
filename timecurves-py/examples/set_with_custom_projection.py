@@ -18,8 +18,8 @@ proj_algo = tc.ProjectionAlgorithm(RandomProjection())
 # create a timecurve set
 set = tc.TimecurveSet(input_data, proj_algo)
 
-# print the points
-for curve in set.get_curves():
-    print("Curve: ", curve.get_name())
-    for point in curve.get_points():
-        print("x: ", round(point.get_pos_x(), 2), "y: ",round(point.get_pos_y(), 2))
+# export
+export = tc.Exporter("vegalite", None, None).export(set)
+
+# print the export
+print(export)

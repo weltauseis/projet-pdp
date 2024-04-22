@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-//mod export;
+mod export;
 mod input;
 mod projection;
 mod timecurve;
@@ -13,12 +13,12 @@ fn timecurves_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(input::input_from_str, m)?)?;
     // Projection
     m.add_class::<projection::PyProjAlgorithm>()?;
-    // m.add_class::<export::PyExporter>()?;
     //Timecurves
     m.add_class::<timecurve::PyPosition>()?;
     m.add_class::<timecurve::PyTimecurvePoint>()?;
     m.add_class::<timecurve::PyTimecurve>()?;
     m.add_class::<timecurve::PyTimecurveSet>()?;
-
+    // export
+    m.add_class::<export::PyExporter>()?;
     Ok(())
 }
