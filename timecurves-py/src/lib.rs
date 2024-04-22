@@ -19,6 +19,9 @@ fn timecurves_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<timecurve::PyTimecurve>()?;
     m.add_class::<timecurve::PyTimecurveSet>()?;
     // export
-    m.add_class::<export::PyExporter>()?;
+    m.add_function(wrap_pyfunction!(export::export_to_csv, m)?)?;
+    m.add_function(wrap_pyfunction!(export::export_to_tikz, m)?)?;
+    m.add_function(wrap_pyfunction!(export::export_to_svg, m)?)?;
+    m.add_function(wrap_pyfunction!(export::export_to_vegalite, m)?)?;
     Ok(())
 }

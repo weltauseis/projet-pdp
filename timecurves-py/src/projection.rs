@@ -79,8 +79,10 @@ impl PyProjAlgorithm {
     }
 
     #[staticmethod]
-    pub fn classical_mds() -> PyClassicalMDS {
-        ClassicalMDS::new().into()
+    pub fn classical_mds(py: Python) -> PyProjAlgorithm {
+        PyProjAlgorithm {
+            algo: PyClassicalMDS::new().into_py(py),
+        }
     }
 
     pub fn project(&self, distance_matrix: Vec<Vec<f64>>) -> PyResult<Vec<PyPosition>> {
