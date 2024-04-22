@@ -31,7 +31,7 @@ impl PyDataset {
 
 #[pyclass(name = "InputData")]
 pub struct PyInputData {
-    inner: InputData,
+    pub inner: InputData,
 }
 
 impl From<InputData> for PyInputData {

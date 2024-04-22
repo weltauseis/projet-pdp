@@ -13,6 +13,7 @@ fn timecurves_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(input::input_from_str, m)?)?;
     // Projection
     m.add_class::<projection::PyClassicalMDS>()?;
+    m.add_class::<projection::PyUserAlgorithm>()?;
     /* m.add_class::<export::PyExporter>()?;
     //Timecurve
     m.add_function(wrap_pyfunction!(timecurve::timecurves_from_data, m)?)?; */
