@@ -460,7 +460,10 @@ impl TimecurveSet {
         let min = x_min.min(y_min);
 
         let range = max - min;
-        assert!(range.is_infinite(), "Domain too large, to normalise");
+        assert!(
+            !range.is_infinite(),
+            "Overflow in normalisation, range is infinite."
+        );
         for curve in &mut self.curves {
             curve.normalise_points(Position::new(x_min, y_min), range);
         }
@@ -645,7 +648,120 @@ mod tests {
     }
 
     #[test]
-    fn align() {
-        // let mut timecurve = Timecurve::new_empty("test");
+    fn test_label_to_time() {
+        let label = "2021-01-01T00:00:00Z";
+        let time = label_to_time(label).unwrap();
+        assert_eq!(time, 1609459200);
+
+        let label = "2021-01-01 00:00:00.000";
+        let time = label_to_time(label).unwrap();
+        assert_eq!(time, 1609459200);
+
+        let label = "1609459200";
+        let time = label_to_time(label).unwrap();
+        assert_eq!(time, 1609459200);
+
+        let label = "not a valid label";
+        let time = label_to_time(label);
+        assert!(time.is_err());
+    }
+
+    #[test]
+    fn test_rotate_point_around_origin() {
+        const EPSILON: f64 = 1e-6; // tolerance for floating point comparisons around zero
+        let p = Position::new(1.0, 0.0);
+        let angle = std::f64::consts::PI / 2.0;
+        let new_p = rotate_point_around_origin(angle, p);
+        assert!(new_p.get_x().abs() < EPSILON);
+        assert_eq!(new_p.get_y(), 1.0);
+
+        let p = Position::new(1.0, 0.0);
+        let angle = std::f64::consts::PI * 1.5;
+        let new_p = rotate_point_around_origin(angle, p);
+        assert!(new_p.get_x().abs() < EPSILON);
+        assert_eq!(new_p.get_y(), -1.0);
+    }
+
+    #[test]
+    fn test_timecurve_compute_control_points() {
+        //Control points do exist
+        let mut timecurve = Timecurve::new_empty("test");
+        let x = [(0.0, 0.0), (1.0, 1.0), (2.0, 0.0)];
+        for i in 0..x.len() {
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i as i64,
+                pos: Position::new(x[i].0, x[i].1),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        timecurve.compute_control_points(0.3);
+        for p in &timecurve.points {
+            //first and last point have only one control point
+            if p.t == 0 {
+                assert!(p.c_next.is_some());
+                assert!(p.c_prev.is_none());
+            } else if p.t == timecurve.points.len() as i64 - 1 {
+                assert!(p.c_prev.is_some());
+                assert!(p.c_next.is_none());
+            } else {
+                assert!(p.c_prev.is_some());
+                assert!(p.c_next.is_some());
+            }
+        }
+    }
+
+    #[test]
+    fn test_timecurve_align() {
+        //test with point are align on the y axis
+        let mut timecurve = Timecurve::new_empty("test");
+        let x = [(0.0, 0.0), (1.0, 1.0), (2.0, 3.0)];
+        for i in 0..x.len() {
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i as i64,
+                pos: Position::new(x[i].0, x[i].1),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        let mut set = TimecurveSet {
+            curves: vec![timecurve],
+        };
+        set.align();
+        for curve in set.curves {
+            let p0 = curve.points.first().unwrap();
+            let p1 = curve.points.last().unwrap();
+            assert_eq!(p0.pos.y, p1.pos.y);
+        }
+    }
+    //new timecurve
+    #[test]
+    fn test_timecurve_new() {
+        let dataset = Dataset::new(
+            "test",
+            vec!["0".to_string(), "1".to_string(), "2".to_string()],
+        );
+        let projected_points = vec![
+            Position::new(0.0, 0.0),
+            Position::new(1.0, 1.0),
+            Position::new(2.0, 3.0),
+        ];
+        let timecurve = Timecurve::new(&dataset, &projected_points).unwrap();
+        assert_eq!(timecurve.get_name(), "test");
+        let points = timecurve.get_points();
+        assert_eq!(points.len(), 3);
+        assert_eq!(points[0].get_label(), "0");
+        assert_eq!(points[0].get_t(), 0);
+        assert_eq!(points[0].get_pos_x(), 0.0);
+        assert_eq!(points[0].get_pos_y(), 0.0);
+        assert!(points[0].get_c_prev().is_none());
+        assert!(points[0].get_c_next().is_none());
+        assert_eq!(points[0].get_color(), (0, 0, 0));
+        assert_eq!(points[0].get_pos().get_x(), 0.0);
+        assert_eq!(points[0].get_pos().get_y(), 0.0);
     }
 }
