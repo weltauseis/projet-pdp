@@ -460,7 +460,7 @@ impl TimecurveSet {
         let min = x_min.min(y_min);
 
         let range = max - min;
-
+        assert!(range.is_infinite(), "Domain too large, to normalise");
         for curve in &mut self.curves {
             curve.normalise_points(Position::new(x_min, y_min), range);
         }
@@ -574,4 +574,78 @@ pub fn curve_color_lerp(curve_id: usize, u: f32) -> (u8, u8, u8) {
         (srgb.green * 255.0) as u8,
         (srgb.blue * 255.0) as u8,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use std::f64::{MAX, MIN};
+
+    use super::*;
+
+    #[test]
+    fn random_dommain_test_normalise_points() {
+        let mut timecurve = Timecurve::new_empty("test");
+        for i in 0..100 {
+            let x = rand::random::<f64>() * 1000.0;
+            let y = rand::random::<f64>() * 1000.0;
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i,
+                pos: Position::new(x, y),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        let mut set = TimecurveSet {
+            curves: vec![timecurve],
+        };
+        set.normalise();
+        for curve in set.curves {
+            for p in curve.points {
+                assert!(p.pos.x <= 1.0 && p.pos.x >= -1.0);
+                assert!(p.pos.y <= 1.0 && p.pos.y >= -1.0);
+            }
+        }
+    }
+
+    #[test]
+    fn limit_dommain_test_normalise_points() {
+        //test with points at the limit of the domain
+        let mut timecurve = Timecurve::new_empty("test");
+        let x = [
+            (MAX / 2.0, MAX / 2.0),
+            (MAX / 2.0, 0.0),
+            (0.0, MAX / 2.0),
+            (0.0, 0.0),
+            (MIN / 2.0, MIN / 2.0),
+            (MIN / 2.0, 0.0),
+            (0.0, MIN / 2.0),
+        ];
+        for i in 0..x.len() {
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i as i64,
+                pos: Position::new(x[i].0, x[i].1),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        let mut set = TimecurveSet {
+            curves: vec![timecurve],
+        };
+        set.normalise();
+        for curve in set.curves {
+            for p in curve.points {
+                assert!(p.pos.x <= 1.0 && p.pos.x >= 0.0);
+                assert!(p.pos.y <= 1.0 && p.pos.y >= 0.0);
+            }
+        }
+    }
+
+    #[test]
+    fn align() {
+        // let mut timecurve = Timecurve::new_empty("test");
+    }
 }
