@@ -48,8 +48,6 @@ fn main() {
         }
     );
 
-    println!("url : {}", url);
-
     // STEP 1 : GET ALL THE REVISIONS
 
     // fill the revisions array
