@@ -26,6 +26,9 @@ struct Command {
     /// If specified, include only revisions older than this revision
     #[arg(short, long, value_name = "REVISION_ID")]
     older_than: Option<String>,
+    /// Save the timestamps in a format compatible with the original Java implementation
+    #[arg(long)]
+    legacy: bool,
 }
 
 // https://www.mediawiki.org/wiki/API:REST_API/Reference
@@ -174,13 +177,24 @@ fn main() {
         "distancematrix": matrix,
         "data": [{
             "name": format!("{}.wikipedia.org/wiki/{}", cmd.lang_code, cmd.page),
-            "timelabels": revisions.iter().map(|rev| rev.timestamp.clone()).collect::<Vec<String>>()
+            "timelabels": revisions.iter().map(|rev|
+                if !cmd.legacy {
+                    rev.timestamp.clone()
+                } else {
+                    rev.timestamp.replace("T", " ").replace("Z", ".0")
+                }
+            ).collect::<Vec<String>>()
         }]
     });
 
     let mut f = std::fs::File::create(&cmd.output).unwrap();
 
-    write!(&mut f, "{}", json_output.to_string()).unwrap();
+    write!(
+        &mut f,
+        "{}",
+        serde_json::to_string_pretty(&json_output).unwrap()
+    )
+    .unwrap();
 
     println!("Done ! File saved in '{}'.", &cmd.output);
 }
