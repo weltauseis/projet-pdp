@@ -614,7 +614,6 @@ mod tests {
 
     #[test]
     fn limit_dommain_test_normalise_points() {
-        //test with points at the limit of the domain
         let mut timecurve = Timecurve::new_empty("test");
         let x = [
             (MAX / 2.0, MAX / 2.0),
@@ -648,7 +647,7 @@ mod tests {
     }
 
     #[test]
-    fn test_label_to_time() {
+    fn label_to_time_parsing_correctly() {
         let label = "2021-01-01T00:00:00Z";
         let time = label_to_time(label).unwrap();
         assert_eq!(time, 1609459200);
@@ -683,27 +682,21 @@ mod tests {
     }
 
     #[test]
-    fn test_timecurve_compute_control_points() {
+    fn timecurve_compute_control_points_right_amount() {
         //Control points do exist
-        let mut timecurve = Timecurve::new_empty("test");
-        let x = [(0.0, 0.0), (1.0, 1.0), (2.0, 0.0)];
-        for i in 0..x.len() {
-            timecurve.points.push(TimecurvePoint {
-                label: i.to_string(),
-                t: i as i64,
-                pos: Position::new(x[i].0, x[i].1),
-                c_prev: None,
-                c_next: None,
-                color: (0, 0, 0),
-            });
-        }
-        timecurve.compute_control_points(0.3);
-        for p in &timecurve.points {
+        let input_data = InputData::from_filename(&format!(
+            "{}/tests/psfr100points.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let set = TimecurveSet::new(&input_data, crate::projection::ClassicalMDS::new()).unwrap();
+        let tcurve = &set.curves[0];
+        for p in &tcurve.points {
             //first and last point have only one control point
-            if p.t == 0 {
+            if tcurve.points.first().unwrap().t == p.t {
                 assert!(p.c_next.is_some());
                 assert!(p.c_prev.is_none());
-            } else if p.t == timecurve.points.len() as i64 - 1 {
+            } else if tcurve.points.last().unwrap().t == p.t {
                 assert!(p.c_prev.is_some());
                 assert!(p.c_next.is_none());
             } else {
@@ -717,7 +710,7 @@ mod tests {
     fn test_timecurve_align() {
         //test with point are align on the y axis
         let mut timecurve = Timecurve::new_empty("test");
-        let x = [(0.0, 0.0), (1.0, 1.0), (2.0, 3.0)];
+        let x = [(0.0, 0.0), (1.0, 1.0), (20.0, 30.0), (2.0, 3.0)];
         for i in 0..x.len() {
             timecurve.points.push(TimecurvePoint {
                 label: i.to_string(),
@@ -738,9 +731,9 @@ mod tests {
             assert_eq!(p0.pos.y, p1.pos.y);
         }
     }
-    //new timecurve
+
     #[test]
-    fn test_timecurve_new() {
+    fn new_timecurve() {
         let dataset = Dataset::new(
             "test",
             vec!["0".to_string(), "1".to_string(), "2".to_string()],
@@ -763,5 +756,21 @@ mod tests {
         assert_eq!(points[0].get_color(), (0, 0, 0));
         assert_eq!(points[0].get_pos().get_x(), 0.0);
         assert_eq!(points[0].get_pos().get_y(), 0.0);
+    }
+
+    #[test]
+    fn timecurveset_with_mds() {
+        let input_data = InputData::from_filename(&format!(
+            "{}/tests/template.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mds = crate::projection::ClassicalMDS::new();
+        let timecurve_set = TimecurveSet::new(&input_data, mds).unwrap();
+        let curves = timecurve_set.get_curves();
+        assert_eq!(curves.len(), 1);
+        let input_data =
+            InputData::from_filename(&format!("{}/tests/error.json", env!("CARGO_MANIFEST_DIR")));
+        assert!(input_data.is_err());
     }
 }
