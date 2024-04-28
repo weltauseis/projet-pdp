@@ -472,11 +472,12 @@ impl TimecurveSet {
     /// Updates the colors of the points in the timecurves.
     fn update_colors(&mut self) {
         for (i, curve) in self.curves.iter_mut().enumerate() {
-            let oldest = curve.points.first().unwrap().t as f32;
-            let newest = curve.points.last().unwrap().t as f32;
+            let oldest = curve.points.first().unwrap().t;
+            let newest = curve.points.last().unwrap().t;
 
+            let range = (newest - oldest) as f32;
             for point in curve.points.iter_mut() {
-                point.color = curve_color_lerp(i, (point.t as f32 - oldest) / (newest - oldest))
+                point.color = curve_color_lerp(i, (point.t - oldest) as f32 / range)
             }
         }
     }
