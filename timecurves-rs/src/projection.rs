@@ -1,9 +1,14 @@
-use nalgebra::{DMatrix, DVector};
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
 
 use crate::{
     error::{TimecurveError, TimecurveErrorKind},
     timecurve::Position,
 };
+use nalgebra::{DMatrix, DVector};
 
 /// Trait representing a projection algorithm.
 pub trait ProjectionAlgorithm {

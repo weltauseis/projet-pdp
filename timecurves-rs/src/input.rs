@@ -1,6 +1,11 @@
-use std::error::Error;
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
 
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 
 /// Structure representing a single dataset.
 ///

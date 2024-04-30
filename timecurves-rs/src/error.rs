@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 /// Represents an error that can occur while working with time curves.
 #[derive(Debug)]
 pub struct TimecurveError {
@@ -31,7 +37,8 @@ impl std::fmt::Display for TimecurveError {
                     TimecurveErrorKind::EvaluatedOutsideRange =>
                         "Tried to evaluate timecurve outside its range !",
                     TimecurveErrorKind::InvalidTimeLabel => "Timelabel is invalid !",
-                    TimecurveErrorKind:: PythonError => "/// An error occured in a python function passed to the library !",
+                    TimecurveErrorKind::PythonError =>
+                        "/// An error occured in a python function passed to the library !",
                 },
                 info
             )?;

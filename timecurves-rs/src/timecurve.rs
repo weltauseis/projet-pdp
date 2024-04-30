@@ -1,9 +1,16 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+* Copyright (c) 2024, Thibault Giloux
+* Copyright (c) 2024, Sunn Mercier-Talcone
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use crate::{
     error::{TimecurveError, TimecurveErrorKind},
     input::{Dataset, InputData},
     projection::ProjectionAlgorithm,
 };
-
 use palette::{Darken, Hsv, IntoColor, Mix, Srgb};
 
 #[derive(Clone, Copy)]
@@ -460,7 +467,10 @@ impl TimecurveSet {
         let min = x_min.min(y_min);
 
         let range = max - min;
-
+        assert!(
+            !range.is_infinite(),
+            "Overflow in normalisation, range is infinite."
+        );
         for curve in &mut self.curves {
             curve.normalise_points(Position::new(x_min, y_min), range);
         }
@@ -469,11 +479,12 @@ impl TimecurveSet {
     /// Updates the colors of the points in the timecurves.
     fn update_colors(&mut self) {
         for (i, curve) in self.curves.iter_mut().enumerate() {
-            let oldest = curve.points.first().unwrap().t as f32;
-            let newest = curve.points.last().unwrap().t as f32;
+            let oldest = curve.points.first().unwrap().t;
+            let newest = curve.points.last().unwrap().t;
 
+            let range = (newest - oldest) as f32;
             for point in curve.points.iter_mut() {
-                point.color = curve_color_lerp(i, (point.t as f32 - oldest) / (newest - oldest))
+                point.color = curve_color_lerp(i, (point.t - oldest) as f32 / range)
             }
         }
     }
@@ -574,4 +585,200 @@ pub fn curve_color_lerp(curve_id: usize, u: f32) -> (u8, u8, u8) {
         (srgb.green * 255.0) as u8,
         (srgb.blue * 255.0) as u8,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use std::f64::{MAX, MIN};
+
+    use super::*;
+
+    #[test]
+    fn random_dommain_test_normalise_points() {
+        let mut timecurve = Timecurve::new_empty("test");
+        for i in 0..100 {
+            let x = rand::random::<f64>() * 1000.0;
+            let y = rand::random::<f64>() * 1000.0;
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i,
+                pos: Position::new(x, y),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        let mut set = TimecurveSet {
+            curves: vec![timecurve],
+        };
+        set.normalise();
+        for curve in set.curves {
+            for p in curve.points {
+                assert!(p.pos.x <= 1.0 && p.pos.x >= -1.0);
+                assert!(p.pos.y <= 1.0 && p.pos.y >= -1.0);
+            }
+        }
+    }
+
+    #[test]
+    fn limit_dommain_test_normalise_points() {
+        let mut timecurve = Timecurve::new_empty("test");
+        let x = [
+            (MAX / 2.0, MAX / 2.0),
+            (MAX / 2.0, 0.0),
+            (0.0, MAX / 2.0),
+            (0.0, 0.0),
+            (MIN / 2.0, MIN / 2.0),
+            (MIN / 2.0, 0.0),
+            (0.0, MIN / 2.0),
+        ];
+        for i in 0..x.len() {
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i as i64,
+                pos: Position::new(x[i].0, x[i].1),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        let mut set = TimecurveSet {
+            curves: vec![timecurve],
+        };
+        set.normalise();
+        for curve in set.curves {
+            for p in curve.points {
+                assert!(p.pos.x <= 1.0 && p.pos.x >= 0.0);
+                assert!(p.pos.y <= 1.0 && p.pos.y >= 0.0);
+            }
+        }
+    }
+
+    #[test]
+    fn label_to_time_parsing_correctly() {
+        let label = "2021-01-01T00:00:00Z";
+        let time = label_to_time(label).unwrap();
+        assert_eq!(time, 1609459200);
+
+        let label = "2021-01-01 00:00:00.000";
+        let time = label_to_time(label).unwrap();
+        assert_eq!(time, 1609459200);
+
+        let label = "1609459200";
+        let time = label_to_time(label).unwrap();
+        assert_eq!(time, 1609459200);
+
+        let label = "not a valid label";
+        let time = label_to_time(label);
+        assert!(time.is_err());
+    }
+
+    #[test]
+    fn test_rotate_point_around_origin() {
+        const EPSILON: f64 = 1e-6; // tolerance for floating point comparisons around zero
+        let p = Position::new(1.0, 0.0);
+        let angle = std::f64::consts::PI / 2.0;
+        let new_p = rotate_point_around_origin(angle, p);
+        assert!(new_p.get_x().abs() < EPSILON);
+        assert_eq!(new_p.get_y(), 1.0);
+
+        let p = Position::new(1.0, 0.0);
+        let angle = std::f64::consts::PI * 1.5;
+        let new_p = rotate_point_around_origin(angle, p);
+        assert!(new_p.get_x().abs() < EPSILON);
+        assert_eq!(new_p.get_y(), -1.0);
+    }
+
+    #[test]
+    fn timecurve_compute_control_points_right_amount() {
+        //Control points do exist
+        let input_data = InputData::from_filename(&format!(
+            "{}/tests/psfr100points.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let set = TimecurveSet::new(&input_data, crate::projection::ClassicalMDS::new()).unwrap();
+        let tcurve = &set.curves[0];
+        for p in &tcurve.points {
+            //first and last point have only one control point
+            if tcurve.points.first().unwrap().t == p.t {
+                assert!(p.c_next.is_some());
+                assert!(p.c_prev.is_none());
+            } else if tcurve.points.last().unwrap().t == p.t {
+                assert!(p.c_prev.is_some());
+                assert!(p.c_next.is_none());
+            } else {
+                assert!(p.c_prev.is_some());
+                assert!(p.c_next.is_some());
+            }
+        }
+    }
+
+    #[test]
+    fn test_timecurve_align() {
+        //test with point are align on the y axis
+        let mut timecurve = Timecurve::new_empty("test");
+        let x = [(0.0, 0.0), (1.0, 1.0), (20.0, 30.0), (2.0, 3.0)];
+        for i in 0..x.len() {
+            timecurve.points.push(TimecurvePoint {
+                label: i.to_string(),
+                t: i as i64,
+                pos: Position::new(x[i].0, x[i].1),
+                c_prev: None,
+                c_next: None,
+                color: (0, 0, 0),
+            });
+        }
+        let mut set = TimecurveSet {
+            curves: vec![timecurve],
+        };
+        set.align();
+        for curve in set.curves {
+            let p0 = curve.points.first().unwrap();
+            let p1 = curve.points.last().unwrap();
+            assert_eq!(p0.pos.y, p1.pos.y);
+        }
+    }
+
+    #[test]
+    fn new_timecurve() {
+        let dataset = Dataset::new(
+            "test",
+            vec!["0".to_string(), "1".to_string(), "2".to_string()],
+        );
+        let projected_points = vec![
+            Position::new(0.0, 0.0),
+            Position::new(1.0, 1.0),
+            Position::new(2.0, 3.0),
+        ];
+        let timecurve = Timecurve::new(&dataset, &projected_points).unwrap();
+        assert_eq!(timecurve.get_name(), "test");
+        let points = timecurve.get_points();
+        assert_eq!(points.len(), 3);
+        assert_eq!(points[0].get_label(), "0");
+        assert_eq!(points[0].get_t(), 0);
+        assert_eq!(points[0].get_pos_x(), 0.0);
+        assert_eq!(points[0].get_pos_y(), 0.0);
+        assert!(points[0].get_c_prev().is_none());
+        assert!(points[0].get_c_next().is_none());
+        assert_eq!(points[0].get_color(), (0, 0, 0));
+        assert_eq!(points[0].get_pos().get_x(), 0.0);
+        assert_eq!(points[0].get_pos().get_y(), 0.0);
+    }
+
+    #[test]
+    fn timecurveset_with_mds() {
+        let input_data = InputData::from_filename(&format!(
+            "{}/tests/template.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap();
+        let mds = crate::projection::ClassicalMDS::new();
+        let timecurve_set = TimecurveSet::new(&input_data, mds).unwrap();
+        let curves = timecurve_set.get_curves();
+        assert_eq!(curves.len(), 1);
+        let input_data =
+            InputData::from_filename(&format!("{}/tests/error.json", env!("CARGO_MANIFEST_DIR")));
+        assert!(input_data.is_err());
+    }
 }

@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use crate::timecurve::TimecurveSet;
 
 /// Trait representing an exporter for timecurve sets.

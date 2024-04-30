@@ -1,3 +1,11 @@
+/*
+* Copyright (c) 2024, Thibault Giloux
+* Copyright (c) 2024, Sunn Mercier-Talcone
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use crate::timecurve::TimecurveSet;
 
 use super::Exporter;

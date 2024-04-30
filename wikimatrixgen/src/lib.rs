@@ -1,3 +1,8 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
 use serde::{Deserialize, Serialize};
 
 // Structures for automatic parsing of Wikipedia API responses with serde_json ------------
