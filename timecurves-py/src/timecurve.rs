@@ -1,7 +1,13 @@
-use pyo3::{exceptions::PyValueError, prelude::*};
-use timecurves_rs::timecurve::{Position, Timecurve, TimecurvePoint, TimecurveSet};
+/*
+* Copyright (c) 2024, Kevin Jourdain
+* Copyright (c) 2024, Thibault Giloux
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
 
 use crate::{input::PyInputData, projection::PyProjAlgorithm};
+use pyo3::{exceptions::PyValueError, prelude::*};
+use timecurves_rs::timecurve::{Position, Timecurve, TimecurvePoint, TimecurveSet};
 
 #[pyclass(name = "Position")]
 pub struct PyPosition {

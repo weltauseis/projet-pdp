@@ -1,7 +1,13 @@
-use pyo3::prelude::*;
-use timecurves_rs::exporters::{CSVExporter, Exporter};
+/*
+* Copyright (c) 2024, Kevin Jourdain
+* Copyright (c) 2024, Thibault Giloux
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
 
 use crate::timecurve::PyTimecurveSet;
+use pyo3::prelude::*;
+use timecurves_rs::exporters::{CSVExporter, Exporter};
 
 const TIKZ_DRAWING_SIZE: f64 = 10.;
 const LINE_THICKNESS: f64 = 1.0;
