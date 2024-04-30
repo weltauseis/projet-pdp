@@ -1,9 +1,14 @@
-use std::{process::exit, sync::Mutex};
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
 
 use clap::Parser;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde_json::json;
 use std::io::Write;
+use std::{process::exit, sync::Mutex};
 use textdistance::str::levenshtein;
 use wikimatrixgen::{HistoryRes, Revision};
 

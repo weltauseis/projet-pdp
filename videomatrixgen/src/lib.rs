@@ -1,3 +1,10 @@
+/*
+* Copyright (c) 2024, Sunn Mercier-Talcone
+* Copyright (c) 2024, Maxime Granjou
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 //this file will contain the code for the video converter
 //video are cut into 1 seconds frames and then converted to images
 //the images are converted  to a distance matrix
@@ -28,7 +35,10 @@ pub fn video_to_frames(
     frame_nb: &u32,
 ) -> Result<Video, Box<dyn Error>> {
     if !Path::new(video_path).exists() {
-        eprintln!("Error : The following input video file does not exist : {}", video_path);
+        eprintln!(
+            "Error : The following input video file does not exist : {}",
+            video_path
+        );
         exit(1);
     }
     let old_output_path = Path::new(output_path);

@@ -1,9 +1,16 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+* Copyright (c) 2024, Thibault Giloux
+* Copyright (c) 2024, Sunn Mercier-Talcone
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use crate::{
     error::{TimecurveError, TimecurveErrorKind},
     input::{Dataset, InputData},
     projection::ProjectionAlgorithm,
 };
-
 use palette::{Darken, Hsv, IntoColor, Mix, Srgb};
 
 #[derive(Clone, Copy)]

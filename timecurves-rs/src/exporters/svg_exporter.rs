@@ -1,3 +1,9 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use super::Exporter;
 
 /// An exporter to SVG format.

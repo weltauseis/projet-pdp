@@ -1,3 +1,10 @@
+/*
+* Copyright (c) 2024, Kevin Jourdain
+* Copyright (c) 2024, Thibault Giloux
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use clap::Parser;
 use log::{debug, info};
 use std::{path::PathBuf, process::exit};

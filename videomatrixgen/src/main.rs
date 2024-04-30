@@ -1,3 +1,10 @@
+/*
+* Copyright (c) 2024, Sunn Mercier-Talcone
+* Copyright (c) 2024, Maxime Granjou
+*
+* SPDX-License-Identifier: BSD-3-Clause
+*/
+
 use clap::{command, Arg};
 use videomatrixgen::create_json_file_from_video;
 
