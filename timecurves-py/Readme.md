@@ -28,18 +28,4 @@ Build the project using maturin then run python and import the lib as following 
 
 # Maintenance
 
-There is a high dependency between timecurve-rs and timecurve-py so any modification from the crate timecurve-rs can break this crate.
-
-### Modification that will break the lib
-
-If any current pub function or any Class that possessed pub function are altered
-
-#### Adding feature
-
-New **Exporter** need to be add in **export** function of _PyExporter_ from _exporter.rs_.
-
-New **ProjectionAlgorithm** need to be add in **new** functon of _PyTimecurve_ from _timecurve.rs_.
-
-Any new **pub method** need to be add and called from the Py*Class*.
-
-Any new **pub class** need to have a new Py*Class* equivalent that embed this new class.
+There is a high dependency between timecurve-rs and timecurve-py so any modification from the crate timecurve-rs can break this one.
