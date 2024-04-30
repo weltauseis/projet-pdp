@@ -3,17 +3,17 @@
 ## Installation
 
 - `python3 -m venv .env`
-- `source .env/bin/activate`
+- `source .env/bin/activate` (`source .env/bin/activate` for fish shell users)
 - `pip install maturin`
 
 ## Build
 
-`source .env/bin/activate` to be in python venv
-Then `maturin develop` to build the project
+- `source .env/bin/activate` to be in python virtual env
+- `maturin develop` to build the project
 
 ## Use from cli
 
-Run **src/cli.py [-h] [--format FORMAT] [--algo ALGO] input output**
+Run **examples/cli.py [-h] [--format FORMAT] [--algo ALGO] input output**
 
 - FORMAT in { svg, csv, tikz, vegalite }
 - ALGO in { mds }
@@ -23,7 +23,7 @@ For exemple :
 
 ## Use lib in python
 
-Build the project using maturin then run python and import the lib as following :
+Build the project using maturin, then run python and import the lib as following :
 **import timecurves_py**
 
 # Maintenance
